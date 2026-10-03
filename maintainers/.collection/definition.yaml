@@ -1,0 +1,19 @@
+# One record per maintainer, keyed by GitHub handle
+# (maintainers/$records/<handle>.yaml). A model's maintainers column names
+# these keys.
+titles:
+  en: Maintainers
+
+record_file:
+  name: '{key}.yaml'
+  format: yaml
+  type: map[string]any
+
+columns:
+  name:
+    type: string
+    required: true
+    min_length: 1
+
+columns_order:
+  - name

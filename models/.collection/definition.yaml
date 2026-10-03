@@ -1,0 +1,81 @@
+# One record per registered ModelSpec model, keyed by its registry id
+# (models/$records/<id>.yaml). Format modelspec-registry/draft-1; README.md
+# explains every column. inGitDB checks what is declared here (types,
+# required, enums, lengths, foreign keys); scripts/check.mjs checks what a
+# column definition cannot say (the id, address and path shapes, unique
+# addresses, and everything about the model's repository at the commit).
+titles:
+  en: ModelSpec models
+
+record_file:
+  name: '{key}.yaml'
+  format: yaml
+  type: map[string]any
+
+columns:
+  format:
+    type: string
+    required: true
+    enum: [modelspec-registry/draft-1]
+  title:
+    type: string
+    required: true
+    min_length: 1
+    max_length: 120
+  description:
+    type: string
+    required: true
+    min_length: 1
+  status:
+    type: string
+    required: true
+    enum: [draft, published, deprecated]
+  # address and repository carry no `format:` hint: inGitDB treats `format`
+  # as a rendering hint and does not validate it. scripts/check.mjs checks
+  # both: repository is an https URL on an allowed host without .git, and
+  # address is modelspec:// + that repository + / + module.
+  address:
+    type: string
+    required: true
+  repository:
+    type: string
+    required: true
+  commit:
+    type: string
+    required: true
+    length: 40
+  module:
+    type: string
+    required: true
+    min_length: 1
+  source_file:
+    type: string
+    required: true
+    min_length: 1
+  json_file:
+    type: string
+    required: true
+    min_length: 1
+  licence:
+    type: string
+    required: true
+    min_length: 1
+  maintainers:
+    type: '[]string'
+    required: true
+    min_length: 1
+    foreign_key: maintainers
+
+columns_order:
+  - format
+  - title
+  - description
+  - status
+  - address
+  - repository
+  - commit
+  - module
+  - source_file
+  - json_file
+  - licence
+  - maintainers
