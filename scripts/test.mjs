@@ -31,7 +31,10 @@ const cacheDir = join(scratch, 'cache');
 after(() => rmSync(scratch, { recursive: true, force: true }));
 let count = 0;
 
-const gitIn = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { stdio: 'pipe' }).toString().trim();
+// Every git call of this suite runs in gitEnv(): no GIT_ variable, and neither the user's nor the
+// system's git configuration (GIT_CONFIG_GLOBAL=/dev/null, GIT_CONFIG_NOSYSTEM=1), so a fixture
+// commit never meets commit.gpgsign, a hook or an alias of whoever runs the tests.
+const gitIn = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { stdio: 'pipe', env: gitEnv() }).toString().trim();
 const origins = new Map();
 const noNetwork = () => { throw new Error('git was asked to fetch a URL it should never have been handed'); };
 const urlFor = (url) => origins.get(url) ?? noNetwork();
@@ -146,6 +149,7 @@ const fixtureRecord = (source, extra = {}) => ({
 function registry(records = {}, { index = true } = {}) {
   const dir = join(scratch, `registry-${count++}`);
   mkdirSync(join(dir, 'models', '$records'), { recursive: true });
+  cpSync(join(root, 'models', '.collection'), join(dir, 'models', '.collection'), { recursive: true });
   for (const name of ['.ingitdb', 'maintainers']) cpSync(join(root, name), join(dir, name), { recursive: true });
   for (const [id, record] of Object.entries(records)) writeFileSync(join(dir, 'models', '$records', `${id}.yaml`), stringifyYaml(record));
   if (index) writeFileSync(join(dir, 'index.json'), buildIndex(loadModels(options(dir)).entries));
@@ -155,6 +159,9 @@ function registry(records = {}, { index = true } = {}) {
 const options = (dir) => ({ root: dir, urlFor, cacheDir, fetched: new Set(), branches: new Map() });
 const check = (dir) => checkRegistry(options(dir));
 const expectProblem = (problems, pattern) => assert.ok(problems.some((problem) => pattern.test(problem)), `expected a problem matching ${pattern}, got:\n${problems.join('\n') || '(none)'}`);
+// What recordProblems needs besides the models: the maintainers and the columns the committed
+// collection definitions declare.
+const context = { maintainers: [{ key: 'trakhimenok', file: 'maintainers/$records/trakhimenok.yaml', data: { name: 'A' } }], columns: readRegistry(root).columns };
 const checkRecords = (records) => check(registry(records, { index: false })).problems.filter((problem) => !/index\.json/.test(problem));
 // The problems of one fixture model repository.
 const problemsOf = (source, extra) => checkRecords({ fixture: fixtureRecord(source, extra) });
@@ -249,7 +256,7 @@ test('a repository that is not a canonical https URL on an allowed host is refus
     assert.equal(repositoryKey(repository), null, what);
     assert.equal(addressOf(repository, 'chinook'), null, what);
     const record = { key: 'x', file: 'models/$records/x.yaml', data: { ...fixtureRecord({ name: 'x', repository: 'https://github.com/datatug/chinookdb', commit: 'a'.repeat(40) }), repository } };
-    expectProblem(recordProblems({ models: [record], maintainers: [{ key: 'trakhimenok' }] }), /repository must be an https URL of a repository on/);
+    expectProblem(recordProblems({ models: [record], ...context }), /repository must be an https URL of a repository on/);
     assert.equal(wellFormed(record), false, what);
   }
   assert.equal(repositoryKey('https://github.com/datatug/chinookdb'), 'github.com/datatug/chinookdb');
@@ -273,7 +280,7 @@ test('a malformed record never reaches git: the check passes urlFor nothing', ()
 
 test('an address that is not the repository plus the module fails', () => {
   const source = { name: 'a', commit: 'a'.repeat(40), repository: 'https://github.com/datatug/chinookdb' };
-  const records = (extra) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, extra) }], maintainers: [{ key: 'trakhimenok' }] });
+  const records = (extra) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, extra) }], ...context });
   expectProblem(records({}), /address must be modelspec:\/\/github\.com\/datatug\/chinookdb\/fixture/);
   expectProblem(records({ address: 'meaning://github.com/datatug/chinookdb' }), /address must be modelspec:\/\/github\.com\/datatug\/chinookdb\/fixture/);
   expectProblem(records({ address: 'modelspec://github.com/datatug/chinookdb' }), /address must be/);
@@ -290,15 +297,15 @@ test('a model registered under a second id, or by the same address in another ca
   const source = { name: 'a', commit: 'a'.repeat(40), repository: 'https://github.com/datatug/chinookdb' };
   const data = fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture' });
   const model = (key, extra = {}) => ({ key, file: `models/$records/${key}.yaml`, data: { ...data, ...extra } });
-  const maintainers = [{ key: 'trakhimenok' }];
-  expectProblem(recordProblems({ models: [model('one'), model('two')], maintainers }), /address modelspec:\/\/github\.com\/datatug\/chinookdb\/fixture is registered under 2 ids \(one: .*, two: .*, compared ignoring case\)/);
-  expectProblem(recordProblems({ models: [model('one'), model('two', { repository: 'https://github.com/Datatug/ChinookDB', address: 'modelspec://github.com/Datatug/ChinookDB/fixture' })], maintainers }), /is registered under 2 ids/);
-  assert.deepEqual(recordProblems({ models: [model('one'), model('two', { module: 'other', address: 'modelspec://github.com/datatug/chinookdb/other' })], maintainers }), [], 'two modules of one repository are two models');
+  const maintainers = context.maintainers;
+  expectProblem(recordProblems({ models: [model('one'), model('two')], ...context }), /address modelspec:\/\/github\.com\/datatug\/chinookdb\/fixture is registered under 2 ids \(one: .*, two: .*, compared ignoring case\)/);
+  expectProblem(recordProblems({ models: [model('one'), model('two', { repository: 'https://github.com/Datatug/ChinookDB', address: 'modelspec://github.com/Datatug/ChinookDB/fixture' })], ...context }), /is registered under 2 ids/);
+  assert.deepEqual(recordProblems({ models: [model('one'), model('two', { module: 'other', address: 'modelspec://github.com/datatug/chinookdb/other' })], ...context }), [], 'two modules of one repository are two models');
 });
 
 test('ids, formats, statuses, commit ids, licences and maintainers are checked', () => {
   const source = { name: 'a', commit: 'a'.repeat(40), repository: 'https://github.com/datatug/chinookdb' };
-  const problems = (key, extra) => recordProblems({ models: [{ key, file: `models/$records/${key}.yaml`, data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', ...extra }) }], maintainers: [{ key: 'trakhimenok' }] });
+  const problems = (key, extra) => recordProblems({ models: [{ key, file: `models/$records/${key}.yaml`, data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', ...extra }) }], ...context });
   for (const id of ['Chinook', 'a_b', 'a--b', '-a', 'a-', 'a'.repeat(81), 'a.b']) expectProblem(problems(id, {}), /id ".*" must be lower-case letters, digits and single hyphens, at most 80 characters/);
   assert.deepEqual(problems('a'.repeat(80), {}), []);
   expectProblem(problems('x', { format: 'modelspec-registry/draft-2' }), /format must be modelspec-registry\/draft-1/);
@@ -323,10 +330,6 @@ test('a homepage is optional: with one it is checked and indexed, without one th
   assert.equal(entry.homepage, 'https://models.example.com/fixture/');
   assert.deepEqual(Object.keys(entry).slice(0, 5), ['id', 'title', 'description', 'status', 'homepage']);
   assert.match(readFileSync(join(withHomepage, 'index.json'), 'utf8'), /^ {6}"homepage": "https:\/\/models\.example\.com\/fixture\/",$/m);
-  // A homepage need not be on github.com; it may have a path, and the bare host is written with its slash.
-  for (const homepage of ['https://models.example.com/', 'https://example.com/a/b-c_d.e~f', 'https://a.b.c.example.org/x/', `https://example.com/${'a'.repeat(200 - 'https://example.com/'.length)}`]) {
-    assert.equal(homepageProblem(homepage), null, homepage);
-  }
   const without = registry({ plain: fixtureRecord(source) });
   assert.deepEqual(check(without).problems, []);
   const [plain] = loadModels(options(without)).entries;
@@ -337,66 +340,247 @@ test('a homepage is optional: with one it is checked and indexed, without one th
   expectProblem(check(without).problems, /^index\.json differs/);
 });
 
-test('a homepage that is not a public https URL of at most 200 characters is refused, and never fetched', () => {
+// What a homepage is allowed to be, as README.md states it for index.json.
+const legitimateHomepages = [
+  'https://chinookdb.com/model/',
+  'https://example.com/',
+  'https://models.example.com/fixture/',
+  'https://github.com/datatug/chinookdb/',
+  'https://datatug.github.io/chinookdb/model',
+  'https://en.wikipedia.org/wiki/Chinook_database',
+  'https://xn--mnchen-3ya.de/',
+  'https://a.b.c.example.org/x/',
+  'https://example.co.uk/a/b-c_d.e~f',
+  'https://example.com/docs/v1.2/index.html',
+  'https://sub-domain.example.com/',
+  'https://a--b.example.com/',
+  'https://1.example.com/',
+  'https://example.com/CamelCase/Path',
+  'https://www.modelspec.org/registry/chinook/',
+  'https://x.io/',
+  `https://example.com/${'a'.repeat(200 - 'https://example.com/'.length)}`,
+];
+// Spellings that the first version of the check let through and that are refused now, with the reason.
+const nowRefusedHomepages = {
+  'https://en.wikipedia.org/wiki/Chinook_(database)': /character outside A-Z a-z 0-9 \. _ ~ \/ - in its path/, // parentheses are outside the path set
+  'https://example.com/it%27s': /percent escape/, // an apostrophe is written as itself or left out, and itself is refused
+  'https://example.com/a+b': /character outside/,
+  'https://example.com/a,b': /character outside/,
+  'https://example.com/a:b': /character outside/,
+  'https://example.com/a@b': /character outside/,
+};
+const refusedHomepages = {
+  // Characters that break out of an HTML attribute, in the host and in the path.
+  'https://x"onmouseover="alert(1)"y=".example.com/': /is not a host name/,
+  "https://x'onmouseover='alert(1)'y='.example.com/": /is not a host name/,
+  'https://exa`mple.com/': /is not a host name/,
+  'https://exa{mple.com/': /is not a host name/,
+  'https://exa}mple.com/': /is not a host name/,
+  'https://exa&mple.com/': /is not a host name/,
+  'https://exa!mple.com/': /is not a host name/,
+  'https://exa*mple.com/': /is not a host name/,
+  'https://exa_mple.com/': /is not a host name/,
+  "https://example.com/'onmouseover='alert(1)'y='": /character outside/,
+  'https://example.com/"onmouseover="alert(1)': /character outside/,
+  'https://example.com/`onmouseover=`': /character outside/,
+  'https://example.com/<script>alert(1)</script>': /character outside/,
+  'https://example.com/a&b': /character outside/,
+  'https://example.com/a&quot;b': /character outside/,
+  'https://example.com/a|b': /character outside/,
+  'https://example.com/a[0]': /character outside/,
+  'https://example.com/a;b': /character outside/,
+  'https://example.com/a=b': /character outside/,
+  'https://example.com/a!b': /character outside/,
+  'https://example.com/a$b': /character outside/,
+  'https://example.com/a*b': /character outside/,
+  // Percent escapes: none at all, so each URL has one spelling.
+  'https://example.com/%': /percent escape/,
+  'https://example.com/%zz': /percent escape/,
+  'https://example.com/%00': /percent escape/,
+  'https://example.com/%0d%0a': /percent escape/,
+  'https://example.com/%ff': /percent escape/,
+  'https://example.com/%C3%A9': /percent escape/,
+  'https://example.com/%c3%a9': /percent escape/,
+  'https://example.com/%61': /percent escape/,
+  'https://example.com/%2e%2e/x': /percent escape/,
+  // No port at all.
+  'https://example.com:443/': /must not name a port/,
+  'https://example.com:0/': /must not name a port/,
+  'https://example.com:22/': /must not name a port/,
+  'https://example.com:6379/': /must not name a port/,
+  'https://example.com:8443/': /must not name a port/,
+  'https://example.com:/': /must not name a port/,
+  // Host shapes.
+  'https://-a.example.com/': /is not a host name/,
+  'https://a-.example.com/': /is not a host name/,
+  [`https://${'a'.repeat(64)}.example.com/`]: /is not a host name/,
+  'https://münchen.de/': /is not written canonically \(it would be https:\/\/xn--mnchen-3ya\.de\/\)/,
+  'https://Models.Example.com/': /is not written canonically/,
+  'https://models.example.com': /is not written canonically \(it would be https:\/\/models\.example\.com\/\)/,
+  'https://models.example.com./': /ends with a dot/,
+  'https://models..example.com/': /has an empty label/,
+  'https://localhost/': /single-label name/,
+  'https://localhost:8443/': /single-label name/,
+  'https://app.localhost/': /\.localhost\)/,
+  'https://printer.local/': /\.local\)/,
+  'https://wiki.internal/': /\.internal\)/,
+  'https://router.home.arpa/': /\.home\.arpa\)/,
+  'https://models.test/': /\.test\)/,
+  'https://models.example/': /\.example\)/,
+  'https://abcdefghij.onion/': /\.onion\)/,
+  // Addresses, in every spelling.
+  'https://127.0.0.1/': /is an IP address/,
+  'https://10.0.0.5/model/': /is an IP address/,
+  'https://169.254.169.254/latest/': /is an IP address/,
+  'https://2130706433/': /is an IP address/,
+  'https://0x7f.1/': /is an IP address/,
+  'https://[::1]/': /is an IP address/,
+  'https://[::ffff:7f00:1]/': /is an IP address/,
+  // Scheme, userinfo, query, fragment.
+  'http://models.example.com/': /must be https, not http/,
+  'ftp://models.example.com/': /must be https, not ftp/,
+  'javascript:alert(1)': /must be https, not javascript/,
+  'data:text/html,x': /must be https, not data/,
+  '//models.example.com/': /is not a URL/,
+  'models.example.com': /is not a URL/,
+  'https://user@models.example.com/': /must not contain credentials/,
+  'https://user:secret@models.example.com/': /must not contain credentials/,
+  'https://@models.example.com/': /is not written canonically \(it would be https:\/\/models\.example\.com\/\)/,
+  'https://models.example.com/?a=1': /must not contain a query/,
+  'https://models.example.com/?': /must not contain a query/,
+  'https://models.example.com/#top': /must not contain a fragment/,
+  'https://models.example.com/#': /must not contain a fragment/,
+  'https://github.com/org/repo#readme': /must not contain a fragment/,
+  'https://models.example.com/#/model': /must not contain a fragment/,
+  // Path shapes.
+  'https://models.example.com//x': /empty path segment/,
+  'https://models.example.com/a/../b': /\. or \.\. segment/,
+  'https://models.example.com/a/./b': /\. or \.\. segment/,
+  'https://models.example.com/..': /\. or \.\. segment/,
+  // Whitespace, control characters, length.
+  'https://models.example.com/a b': /whitespace/,
+  ' https://models.example.com/': /whitespace/,
+  'https://models.example.com/\\x': /backslash/,
+  'https://models.example.com/\u0000': /control characters/,
+  'https://models.example.com/\u00a0': /whitespace/,
+  '': /is not a URL/,
+  '   ': /is not a URL/,
+  [`https://example.com/${'a'.repeat(200 - 'https://example.com/'.length + 1)}`]: /longer than 200 characters/,
+};
+
+test('the URLs a homepage may be, and the ones it may not: legitimate ones are kept, every payload is refused with its reason', () => {
   const source = { name: 'a', commit: 'a'.repeat(40), repository: 'https://github.com/datatug/chinookdb' };
-  const problems = (homepage) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', homepage }) }], maintainers: [{ key: 'trakhimenok' }] });
-  const refused = {
-    'http://models.example.com/': /must be https, not http/,
-    'ftp://models.example.com/': /must be https, not ftp/,
-    'javascript:alert(1)': /must be https, not javascript/,
-    '//models.example.com/': /is not a URL/,
-    'models.example.com': /is not a URL/,
-    'https://user@models.example.com/': /must not contain credentials/,
-    'https://user:secret@models.example.com/': /must not contain credentials/,
-    'https://models.example.com/?a=1': /must not contain a query/,
-    'https://models.example.com/?': /must not contain a query/,
-    'https://models.example.com/#top': /must not contain a fragment/,
-    'https://models.example.com/#': /must not contain a fragment/,
-    'https://127.0.0.1/': /is an IP address/,
-    'https://10.0.0.5/model/': /is an IP address/,
-    'https://169.254.169.254/latest/': /is an IP address/,
-    'https://2130706433/': /is an IP address/,
-    'https://0x7f.1/': /is an IP address/,
-    'https://[::1]/': /is an IP address/,
-    'https://[::ffff:7f00:1]/': /is an IP address/,
-    'https://localhost/': /single-label name/,
-    'https://localhost:8443/': /single-label name|not written canonically/,
-    'https://app.localhost/': /\.localhost\)/,
-    'https://printer.local/': /\.local\)/,
-    'https://wiki.internal/': /\.internal\)/,
-    'https://router.home.arpa/': /\.home\.arpa\)/,
-    'https://models.test/': /\.test\)/,
-    'https://models.example/': /\.example\)/,
-    'https://models.example.com./': /ends with a dot/,
-    'https://models..example.com/': /is not written canonically|empty label/,
-    'https://Models.Example.com/': /is not written canonically/,
-    'https://models.example.com:443/': /is not written canonically/,
-    'https://models.example.com//x': /empty path segment/,
-    'https://models.example.com/a/../b': /is not written canonically/,
-    'https://models.example.com': /is not written canonically \(it would be https:\/\/models\.example\.com\/\)/,
-    'https://models.example.com/%61': /writes %61 for a/,
-    'https://models.example.com/a b': /whitespace/,
-    ' https://models.example.com/': /whitespace/,
-    'https://models.example.com/\\x': /backslash/,
-    'https://models.example.com/\u0000': /control characters/,
-    '': /is not a URL/,
-    '   ': /is not a URL/,
-    [`https://example.com/${'a'.repeat(200 - 'https://example.com/'.length + 1)}`]: /longer than 200 characters/,
-  };
-  for (const [homepage, pattern] of Object.entries(refused)) {
+  const problems = (homepage) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', homepage }) }], ...context });
+  assert.equal(legitimateHomepages.length, 17);
+  for (const homepage of legitimateHomepages) {
+    assert.equal(homepageProblem(homepage), null, homepage);
+    assert.deepEqual(problems(homepage), [], homepage);
+    // Whatever is accepted is made of letters, digits and - . _ ~ / : only: nothing that needs escaping in HTML, a URL or a shell.
+    assert.match(homepage, /^[A-Za-z0-9._~/:-]+$/, homepage);
+  }
+  for (const [homepage, pattern] of Object.entries({ ...refusedHomepages, ...nowRefusedHomepages })) {
     expectProblem(problems(homepage), new RegExp(`^models/\\$records/x\\.yaml: homepage: .*${pattern.source}`));
     assert.match(homepageProblem(homepage), pattern, JSON.stringify(homepage));
   }
-  for (const homepage of [5, true, null, ['https://models.example.com/'], { url: 'https://models.example.com/' }]) {
+  for (const homepage of [5, 1.5, true, null, '', ['https://models.example.com/'], { url: 'https://models.example.com/' }]) {
     expectProblem(problems(homepage), /^models\/\$records\/x\.yaml: homepage: is not a URL/);
   }
   assert.equal(maxHomepageLength, 200);
   assert.equal(publicHttpsProblem('https://models.example.com/'), null);
   assert.deepEqual(problems(undefined), []);
-  // A refused homepage fails the whole check and the model is never indexed.
-  const dir = registry({ fixture: fixtureRecord(modelOrigin('badhome'), { homepage: 'http://models.example.com/' }) }, { index: false });
-  expectProblem(check(dir).problems, /^models\/\$records\/fixture\.yaml: homepage: must be https, not http/);
+  // The real thing: every character U+0000 to U+FFFF in the host and in the path, accepted or refused.
+  for (let code = 0; code <= 0xffff; code += 1) {
+    const character = String.fromCharCode(code);
+    if (homepageProblem(`https://a${character}b.example.com/`) === null) assert.match(character, /^[a-z0-9.-]$/, `host character U+${code.toString(16)} accepted`);
+    if (homepageProblem(`https://example.com/a${character}b`) === null) assert.match(character, /^[A-Za-z0-9._~/-]$/, `path character U+${code.toString(16)} accepted`);
+  }
+});
+
+test('a refused homepage fails the whole check and is never requested: the only URL git is asked for is the repository', () => {
+  const source = modelOrigin('badhome');
+  const dir = registry({ fixture: fixtureRecord(source, { homepage: 'http://models.example.com/' }) }, { index: false });
+  const asked = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = () => { throw new Error('the checks must not fetch a homepage'); };
+  let result;
+  try { result = checkRegistry({ ...options(dir), urlFor: (url) => { asked.push(url); return urlFor(url); } }); } finally { globalThis.fetch = realFetch; }
+  expectProblem(result.problems, /^models\/\$records\/fixture\.yaml: homepage: must be https, not http/);
+  assert.deepEqual([...new Set(asked)], [source.repository]);
   assert.ok(loadModels(options(dir)).problems.some((problem) => /homepage/.test(problem)), 'build-index.mjs stops on any problem, so nothing is written');
+});
+
+test('a record has declared columns only: an undeclared key, an id override and a merge key are refused, and none reaches the entry', () => {
+  const source = modelOrigin('keys');
+  const record = fixtureRecord(source, { homepage: 'https://models.example.com/fixture/' });
+  const recordFile = (dir) => join(dir, 'models', '$records', 'fixture.yaml');
+  const columns = readRegistry(root).columns;
+  assert.ok(columns.models.includes('homepage') && !columns.models.includes('id') && !columns.models.includes('<<'));
+  for (const [name, extra, pattern] of [
+    ['an undeclared key', { colour: 'blue' }, /^models\/\$records\/fixture\.yaml: "colour" is not a column of this collection/],
+    ['an id override', { id: 'evil' }, /^models\/\$records\/fixture\.yaml: "id" is not a column of this collection/],
+    ['a key that is a column of another collection', { name: 'x' }, /"name" is not a column of this collection/],
+    ['a key that only differs in case', { Homepage: 'https://models.example.com/' }, /"Homepage" is not a column of this collection/],
+  ]) {
+    const dir = registry({ fixture: { ...record, ...extra } }, { index: false });
+    expectProblem(check(dir).problems, pattern);
+    const { entries } = loadModels(options(dir));
+    assert.equal(entries[0].id, 'fixture', `${name}: the id is the file name`);
+    for (const key of Object.keys(extra).filter((key) => key !== 'id')) assert.equal(key in entries[0], false, `${name}: ${key} is not in the entry`);
+  }
+  // A YAML merge key hides a homepage from the URL check; it is read as a key named "<<" and refused.
+  const text = `${stringifyYaml({ ...record, homepage: undefined })}<<:\n  homepage: 'javascript:alert(1)'\n`;
+  assert.ok('homepage' in parseYaml(text, { merge: true }), 'positive control: a parser that merges would give the record this homepage');
+  const dir = registry({ fixture: record }, { index: false });
+  writeFileSync(recordFile(dir), text);
+  const read = readRegistry(dir);
+  assert.ok('<<' in read.models[0].data);
+  assert.equal(read.models[0].data.homepage, undefined);
+  expectProblem(check(dir).problems, /^models\/\$records\/fixture\.yaml: "<<" merge keys are not allowed/);
+  assert.equal('homepage' in loadModels(options(dir)).entries[0], false);
+  assert.doesNotMatch(buildIndex(loadModels(options(dir)).entries), /javascript|<</);
+  // A maintainer record is held to its collection's columns too, and a record must be a mapping.
+  const maint = registry({ fixture: record }, { index: false });
+  writeFileSync(join(maint, 'maintainers', '$records', 'trakhimenok.yaml'), 'name: A\nrole: admin\n');
+  expectProblem(check(maint).problems, /^maintainers\/\$records\/trakhimenok\.yaml: "role" is not a column of this collection/);
+  const scalar = registry({ fixture: record }, { index: false });
+  writeFileSync(recordFile(scalar), '- a\n- b\n');
+  expectProblem(check(scalar).problems, /^models\/\$records\/fixture\.yaml: a record is a mapping of columns/);
+});
+
+test('the order of an index entry is fixed: it does not depend on the order of the keys in the record file', () => {
+  const source = modelOrigin('ordered');
+  const record = fixtureRecord(source, { homepage: 'https://models.example.com/fixture/' });
+  const shuffled = Object.fromEntries(Object.entries(record).reverse());
+  assert.notDeepEqual(Object.keys(shuffled), Object.keys(record));
+  const [first] = loadModels(options(registry({ fixture: record }))).entries;
+  const [second] = loadModels(options(registry({ fixture: shuffled }))).entries;
+  assert.deepEqual(Object.keys(second), Object.keys(first));
+  assert.equal(buildIndex([second]), buildIndex([first]));
+  assert.deepEqual(Object.keys(first).slice(0, 5), ['id', 'title', 'description', 'status', 'homepage']);
+});
+
+test('the suite\'s git calls ignore the user\'s git configuration: a decoy global config that breaks every commit changes nothing', () => {
+  const home = join(scratch, `decoy-home-${count++}`);
+  mkdirSync(home);
+  // Every commit signs with a program that always fails, as commit.gpgsign=true with no usable key does.
+  writeFileSync(join(home, '.gitconfig'), '[commit]\n\tgpgsign = true\n[gpg]\n\tprogram = /usr/bin/false\n[init]\n\tdefaultBranch = decoy\n');
+  const saved = { HOME: process.env.HOME, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
+  const plain = join(scratch, `decoy-plain-${count++}`);
+  mkdirSync(plain);
+  Object.assign(process.env, { HOME: home, XDG_CONFIG_HOME: join(home, '.config') });
+  try {
+    // Positive control: plain git with that environment does not get a commit through.
+    execFileSync('git', ['-C', plain, 'init', '-q'], { stdio: 'pipe' });
+    assert.throws(() => execFileSync('git', ['-C', plain, '-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-q', '--allow-empty', '-m', 'x'], { stdio: 'pipe' }), 'the decoy configuration is read by an unprotected git');
+    // The fixture helpers commit anyway, on the branch they ask for.
+    const source = modelOrigin('decoy');
+    assert.match(source.commit, /^[0-9a-f]{40}$/);
+    assert.equal(gitIn(source.dir, 'symbolic-ref', '--short', 'HEAD'), 'main');
+    assert.equal(gitEnv().GIT_CONFIG_GLOBAL, '/dev/null');
+    assert.equal(gitEnv().GIT_CONFIG_NOSYSTEM, '1');
+  } finally {
+    for (const [name, value] of Object.entries(saved)) { if (value === undefined) delete process.env[name]; else process.env[name] = value; }
+  }
 });
 
 test('a model file path that is not a plain path inside the repository fails and never reaches git', () => {
@@ -406,12 +590,12 @@ test('a model file path that is not a plain path inside the repository fails and
   for (const path of bad) {
     assert.equal(isRepositoryPath(path), false, String(path));
     const data = fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', source_file: path });
-    expectProblem(recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data }], maintainers: [{ key: 'trakhimenok' }] }), /source_file: .* must be a relative path inside the repository/);
+    expectProblem(recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data }], ...context }), /source_file: .* must be a relative path inside the repository/);
     assert.equal(wellFormed({ data }), false);
   }
   for (const path of ['model/fixture.modelspec.hcl', 'a.modelspec.hcl', 'a-b/c_d/e.f.modelspec.hcl']) assert.equal(isRepositoryPath(path), true, path);
   assert.equal(existsSync(marker), false);
-  const records = (extra) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', ...extra }) }], maintainers: [{ key: 'trakhimenok' }] });
+  const records = (extra) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', ...extra }) }], ...context });
   expectProblem(records({ source_file: 'model/fixture.modelspec.json' }), /source_file: model\/fixture\.modelspec\.json must be a \*\.modelspec\.hcl file/);
   expectProblem(records({ json_file: 'model/fixture.modelspec.hcl' }), /json_file: model\/fixture\.modelspec\.hcl must be a \*\.modelspec\.json file/);
   expectProblem(records({ json_file: 'model/fixture.modelspec.hcl', source_file: 'model/fixture.modelspec.hcl' }), /source_file and json_file must be two different files/);
@@ -456,7 +640,7 @@ test('the registry never reads global or system git configuration, nor inherited
   const source = modelOrigin('redirected');
   const cfg = join(scratch, `gitconfig-${count++}`);
   writeFileSync(cfg, `[url "${origins.get(source.repository)}"]\n\tinsteadOf = https://example.test/fixtures/not-there\n`);
-  const plain = execFileSync('git', ['ls-remote', 'https://example.test/fixtures/not-there', 'HEAD'], { stdio: 'pipe', env: { ...process.env, GIT_CONFIG_GLOBAL: cfg, GIT_ALLOW_PROTOCOL: 'https:file' } }).toString();
+  const plain = execFileSync('git', ['ls-remote', 'https://example.test/fixtures/not-there', 'HEAD'], { stdio: 'pipe', env: { ...process.env, GIT_CONFIG_GLOBAL: cfg, GIT_CONFIG_NOSYSTEM: '1', GIT_ALLOW_PROTOCOL: 'https:file' } }).toString();
   assert.match(plain, /HEAD/, 'positive control: the rewrite works for a git that reads the config');
   const saved = { GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_DIR: process.env.GIT_DIR, GIT_WORK_TREE: process.env.GIT_WORK_TREE, GIT_INDEX_FILE: process.env.GIT_INDEX_FILE, GIT_SSL_CAINFO: process.env.GIT_SSL_CAINFO, GIT_CONFIG_COUNT: process.env.GIT_CONFIG_COUNT };
   Object.assign(process.env, { GIT_CONFIG_GLOBAL: cfg, GIT_DIR: join(scratch, 'no-such-git-dir'), GIT_WORK_TREE: scratch, GIT_INDEX_FILE: join(scratch, 'no-index'), GIT_SSL_CAINFO: '/ca.pem', GIT_CONFIG_COUNT: '1' });
@@ -478,7 +662,7 @@ test('the registry never reads global or system git configuration, nor inherited
 test('pathspecs are literal, and a returned path must be the path asked for', () => {
   const source = origin('literal', { 'model/a.hcl': 'a', 'model/b.hcl': 'b' });
   // Positive control: git's default pathspecs expand a glob; the registry's git does not.
-  assert.deepEqual(execFileSync('git', ['-C', source.dir, 'ls-files', '--', 'model/*.hcl']).toString().trim().split('\n'), ['model/a.hcl', 'model/b.hcl']);
+  assert.deepEqual(execFileSync('git', ['-C', source.dir, 'ls-files', '--', 'model/*.hcl'], { env: gitEnv() }).toString().trim().split('\n'), ['model/a.hcl', 'model/b.hcl']);
   assert.equal(git(['-C', source.dir, 'ls-files', '--', 'model/*.hcl']), '');
   assert.equal(git(['-C', source.dir, 'ls-files', '--', ':(glob)model/**']), '');
   // lookup() refuses a glob or magic pathspec before it reaches git ...
@@ -807,18 +991,21 @@ test('a second model of the same repository is a second entry', () => {
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const freshCache = () => join(scratch, `cache-${count++}`);
-const rawGit = (dir, ...args) => execFileSync('git', ['--git-dir', dir, ...args], { stdio: 'pipe' }).toString();
+// The positive controls need a git that honours replace refs, which gitEnv() turns off; it still
+// reads no user or system configuration.
+const plainEnv = () => { const { GIT_NO_REPLACE_OBJECTS, ...rest } = gitEnv(); return rest; };
+const rawGit = (dir, ...args) => execFileSync('git', ['--git-dir', dir, ...args], { stdio: 'pipe', env: plainEnv() }).toString();
 // The repositories the registry makes, built here the same way, so that a test
 // can start from a sound one and poison exactly one thing.
 const commitEntryDir = (cache, url, commit) => join(cache, 'models', `${sha256(url).slice(0, 24)}-${commit}`);
 function commitRepo(url, commit, dir) {
   mkdirSync(dirname(dir), { recursive: true });
-  execFileSync('git', ['init', '-q', '--bare', '--template=', dir], { stdio: 'pipe' });
+  execFileSync('git', ['init', '-q', '--bare', '--template=', dir], { stdio: 'pipe', env: gitEnv() });
   rawGit(dir, 'fetch', '-q', '--depth', '1', '--end-of-options', url, commit);
 }
 function historyRepo(url, branch, dir) {
   mkdirSync(dirname(dir), { recursive: true });
-  execFileSync('git', ['clone', '-q', '--bare', '--template=', '--filter=tree:0', '--single-branch', '--branch', branch, '--end-of-options', url, dir], { stdio: 'pipe' });
+  execFileSync('git', ['clone', '-q', '--bare', '--template=', '--filter=tree:0', '--single-branch', '--branch', branch, '--end-of-options', url, dir], { stdio: 'pipe', env: gitEnv() });
 }
 const refsOf = (dir, pattern) => rawGit(dir, 'for-each-ref', '--format=%(refname)', pattern).trim();
 
@@ -927,7 +1114,7 @@ test('a forged model in the cache is not read: replace refs are discarded and ig
   const jsonBlob = rawGit(entry, 'rev-parse', `${source.commit}:model/fixture.modelspec.json`).trim();
   const real = rawGit(entry, 'cat-file', 'blob', jsonBlob);
   const forged = real.replaceAll('"Name"', '"Kame"');
-  const forgedId = execFileSync('git', ['--git-dir', entry, 'hash-object', '-w', '--stdin'], { input: forged, stdio: 'pipe' }).toString().trim();
+  const forgedId = execFileSync('git', ['--git-dir', entry, 'hash-object', '-w', '--stdin'], { input: forged, stdio: 'pipe', env: gitEnv() }).toString().trim();
   rawGit(entry, 'replace', jsonBlob, forgedId);
   assert.match(rawGit(entry, 'cat-file', 'blob', jsonBlob), /"Kame"/, 'positive control: plain git reads the forged file for the real object id');
   assert.equal(git(['--git-dir', entry, 'cat-file', 'blob', jsonBlob]), real, 'the registry\'s git ignores replace refs');

@@ -26,6 +26,25 @@ const spdxPattern = /^[A-Za-z0-9][A-Za-z0-9.+-]*$/;
 
 const recordsDir = (root, collection) => join(root, collection, '$records');
 
+// Records are read with YAML merge keys switched off, so that `<<` is an
+// ordinary key (which recordProblems refuses) and not a hidden source of
+// columns that the checks below never see but inGitDB merges.
+const yamlOptions = { merge: false };
+
+// The columns a collection declares in its definition (the keys of `columns`),
+// or a problem when the definition cannot be read.
+export function readColumns(root, collection) {
+  const file = `${collection}/.collection/definition.yaml`;
+  try {
+    const definition = parseYaml(readFileSync(join(root, file), 'utf8'), yamlOptions);
+    const columns = Object.keys(definition?.columns ?? {});
+    if (columns.length === 0) return { columns, problems: [`${file}: declares no columns`] };
+    return { columns, problems: [] };
+  } catch (error) {
+    return { columns: [], problems: [`${file}: cannot read the collection definition: ${error.message}`] };
+  }
+}
+
 // Reads one collection's records as [{ key, file, data }] sorted by key, with a
 // problem for any file in $records that is not <key>.yaml.
 export function readCollection(root, collection) {
@@ -37,7 +56,7 @@ export function readCollection(root, collection) {
     const file = `${collection}/$records/${name}`;
     if (!name.endsWith('.yaml')) { problems.push(`${file}: a record is a <key>.yaml file; remove or rename it`); continue; }
     let data;
-    try { data = parseYaml(readFileSync(join(dir, name), 'utf8')); } catch (error) { problems.push(`${file}: not YAML: ${error.message}`); continue; }
+    try { data = parseYaml(readFileSync(join(dir, name), 'utf8'), yamlOptions); } catch (error) { problems.push(`${file}: not YAML: ${error.message}`); continue; }
     records.push({ key: name.slice(0, -'.yaml'.length), file, data: data ?? {} });
   }
   return { records, problems };
@@ -46,7 +65,26 @@ export function readCollection(root, collection) {
 export function readRegistry(root) {
   const models = readCollection(root, 'models');
   const maintainers = readCollection(root, 'maintainers');
-  return { models: models.records, maintainers: maintainers.records, problems: [...models.problems, ...maintainers.problems] };
+  const columns = { models: readColumns(root, 'models'), maintainers: readColumns(root, 'maintainers') };
+  return {
+    models: models.records,
+    maintainers: maintainers.records,
+    columns: { models: columns.models.columns, maintainers: columns.maintainers.columns },
+    problems: [...models.problems, ...maintainers.problems, ...columns.models.problems, ...columns.maintainers.problems],
+  };
+}
+
+// A record is a mapping of declared columns and nothing else: no key the
+// collection does not declare (which would otherwise go unchecked), and no
+// `<<` merge key.
+function keyProblems(file, data, declared) {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) return [`${file}: a record is a mapping of columns`];
+  const problems = [];
+  for (const key of Object.keys(data)) {
+    if (key === '<<') problems.push(`${file}: "<<" merge keys are not allowed; write every column out, so that every value is checked`);
+    else if (!declared.includes(key)) problems.push(`${file}: ${JSON.stringify(key)} is not a column of this collection (${declared.join(', ')}); the collection definition declares every column`);
+  }
+  return problems;
 }
 
 // A record whose repository, address, module, commit and paths are well formed:
@@ -59,11 +97,13 @@ export const wellFormed = (record) => {
 
 // Rules on the records alone (no network): the parts of the format that the
 // inGitDB collection definitions cannot express.
-export function recordProblems({ models, maintainers }) {
+export function recordProblems({ models, maintainers, columns }) {
   const problems = [];
+  for (const { file, data } of maintainers) problems.push(...keyProblems(file, data, columns.maintainers));
   const byAddress = new Map();
   const handles = new Set(maintainers.map((maintainer) => maintainer.key));
   for (const { key, file, data } of models) {
+    problems.push(...keyProblems(file, data, columns.models));
     if (!idPattern.test(key) || key.length > 80) problems.push(`${file}: id "${key}" must be lower-case letters, digits and single hyphens, at most 80 characters`);
     if (data.format !== registryFormat) problems.push(`${file}: format must be ${registryFormat}`);
     if (!statuses.includes(data.status)) problems.push(`${file}: status must be one of ${statuses.join(', ')}`);

@@ -100,7 +100,7 @@ The file name is the registry id: `models/$records/chinook.yaml` registers
 | `title` | yes | A short name. |
 | `description` | yes | What the model covers, in a few sentences. |
 | `status` | yes | `draft`, `published` or `deprecated`. |
-| `homepage` | no | The publisher's own page for the model, shown as **Website** on the model's page in the catalogue. A public https URL written canonically (a bare host ends in `/`), at most 200 characters: no userinfo, query or fragment, no IP address, `localhost` or local, internal or reserved name (`.local`, `.internal`, `.test`, …). It need not be on `github.com`. The checks read its text only and **never fetch it**, so a page that is down, moved or not yet deployed does not fail them; anyone who fetches it must check the address the name resolves to. `index.json` carries it on the entry when the record has it, and leaves it out otherwise. |
+| `homepage` | no | The publisher's own page for the model, to be shown as **Website** on the model's page at <https://modelspec.org/registry/> once that page shows it. A public https URL; see [What `index.json` guarantees about `homepage`](#what-indexjson-guarantees-about-homepage). It need not be on `github.com`. |
 | `address` | yes | What consumers write: `modelspec://{host}/{org}/{repo}/{module}`, see [Addresses](#addresses). |
 | `repository` | yes | The repository's https URL on an allowed host (today only `github.com`), as `https://github.com/{org}/{repo}`: no `.git`, trailing slash, `.` or `..` segments. Two spellings that differ only in case are the same repository. |
 | `commit` | yes | Full 40-character commit id of the current reviewed version. It must be in the history of the repository's default branch. |
@@ -226,6 +226,39 @@ model in one file, format `modelspec-registry/draft-1`:
   compact JSON (`JSON.stringify(index.models)`), so a consumer can check that
   it read the whole file.
 
+### What `index.json` guarantees about `homepage`
+
+When an entry in `index.json` has a `homepage`, it is a string that is all of:
+
+- at most 200 characters, ASCII only, and made of no characters other than the
+  letters `A-Z a-z`, the digits `0-9`, and `- . _ ~ / :`. So it contains no
+  whitespace, control character, quote (`"` or `'`), backtick, `<`, `>`, `&`,
+  `%`, `?`, `#`, `@` or backslash, and can be written into a link as it stands;
+- `https://`, in lower case, then a host, then a path:
+  - the **host** is dot-separated labels of lower-case letters, digits and
+    hyphens (1 to 63 characters each, none starting or ending with a hyphen),
+    at least two labels, no trailing dot. It is not an IP address in any
+    spelling, not `localhost`, and not a local, internal or reserved name
+    (`.local`, `.internal`, `.test`, `.example`, `.onion` and similar). An
+    international name is written in its `xn--` form (`https://xn--mnchen-3ya.de/`,
+    not `https://münchen.de/`);
+  - **no port** (not even `:443`), **no userinfo, no query and no fragment**
+    (so `https://github.com/org/repo#readme` and `https://example.com/#/model`
+    cannot be used);
+  - the **path** starts with `/` and uses only `A-Z a-z 0-9 . _ ~ / -`: no
+    percent escape (`%xx`), no empty segment (`//`), no `.` or `..` segment. A
+    bare host is written with its slash, `https://example.com/`. Parentheses,
+    `+`, `,`, `;`, `=`, `:` and `@` in a path are not accepted either;
+- written exactly as the WHATWG URL parser would write it, so each page has one
+  spelling.
+
+An entry without a homepage has no `homepage` key (never `null` or `""`). The
+checks read the text and **never fetch** the URL. They cannot tell whether the
+page exists or what a public-looking name resolves to (`127.0.0.1.nip.io` is a
+public name that points at a private address, and a look-alike `xn--` name is
+valid): a site should show the ASCII form it is given, and whatever fetches a
+homepage must check the address itself.
+
 ## Versioning
 
 Moving a model to a new version is a pull request that changes `commit`; the
@@ -246,10 +279,17 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
 2. **The model checks** (`npm run check`, [`scripts/check.mjs`](scripts/check.mjs))
    cover what a collection definition cannot express, and everything that
    needs the model's repository:
-   - a `homepage`, when a record has one, is a public https URL of at most 200
-     characters, as the table above says. It is checked as text and not fetched
-     (the checks make no request to a host a record names; they talk to git
-     hosts on the allow-list only);
+   - a `homepage`, when a record has one, passes the rules in
+     [What `index.json` guarantees about `homepage`](#what-indexjson-guarantees-about-homepage).
+     It is checked as text and **never fetched**: the checks make no request to
+     the homepage's host, so a page that is down, moved or not yet deployed does
+     not fail them. The only hosts the checks contact are the allow-listed git
+     hosts of each record's `repository`;
+   - every key of a record is a column its collection definition declares: an
+     undeclared key (an `id`, a typo, a column of another collection) is
+     refused, and so is a YAML merge key (`<<`), which would hide a value from
+     these checks. An index entry is built from the declared columns only, in
+     one fixed order, and its `id` is always the record's file name;
    - ids follow the rule above; commits are lower-case hex; the licence is
      SPDX-shaped; the address is the repository plus the module, and no
      address is registered twice (compared ignoring case);
