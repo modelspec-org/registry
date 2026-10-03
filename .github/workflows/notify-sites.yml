@@ -1,0 +1,56 @@
+# Tells the sites built from index.json that it changed: starts the Deploy workflow, on main, of each site
+# listed in scripts/notify-sites.json (scripts/notify-sites.mjs). Each site resolves every index it reads to
+# its current commit and compares the live site with it first, stopping at once when nothing differs, so a
+# duplicate or late notification costs it seconds. The notification carries only a reason.
+#
+# One secret per site owner, named in scripts/notify-sites.json: a fine-grained token whose resource owner is
+# that owner, limited to that one site repository, with Actions: read and write (and nothing else). Each token
+# is handed to the one `gh` call for its site (scripts/notify-sites.mjs); the steps before it get none. A
+# token that is absent skips that site with a notice. A token that is present but fails makes the job red at
+# the end, after every site was attempted. No token at all: the job says so and ends green. The job runs only
+# for a push to main or a manual run on main in this repository, never for a pull request or a fork.
+name: Notify the sites
+
+on:
+  push:
+    branches: [main]
+    paths: [index.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notify-sites
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    name: notify
+    if: github.repository == 'modelspec-org/registry' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # 'true' when at least one token exists (compared here, so no secret is copied into a step)
+      HAS_ANY_TOKEN: ${{ secrets.SITES_TRIGGER_TOKEN_SPECSCORE != '' || secrets.SITES_TRIGGER_TOKEN_SNEAT_CO != '' || secrets.SITES_TRIGGER_TOKEN_OPENVAULTDB != '' }}
+    steps:
+      - name: Skipped, no token
+        if: env.HAS_ANY_TOKEN != 'true'
+        run: |
+          echo "::notice::No site token secret (SITES_TRIGGER_TOKEN_SPECSCORE, SITES_TRIGGER_TOKEN_SNEAT_CO, SITES_TRIGGER_TOKEN_OPENVAULTDB): the sites were not notified."
+          echo "Sites not notified: no site token secret (SITES_TRIGGER_TOKEN_SPECSCORE, SITES_TRIGGER_TOKEN_SNEAT_CO, SITES_TRIGGER_TOKEN_OPENVAULTDB)." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_ANY_TOKEN == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: env.HAS_ANY_TOKEN == 'true'
+        with:
+          node-version: 24
+      - name: Start the Deploy workflow of each site
+        if: env.HAS_ANY_TOKEN == 'true'
+        env:
+          SITES_TRIGGER_TOKEN_SPECSCORE: ${{ secrets.SITES_TRIGGER_TOKEN_SPECSCORE }}
+          SITES_TRIGGER_TOKEN_SNEAT_CO: ${{ secrets.SITES_TRIGGER_TOKEN_SNEAT_CO }}
+          SITES_TRIGGER_TOKEN_OPENVAULTDB: ${{ secrets.SITES_TRIGGER_TOKEN_OPENVAULTDB }}
+        run: node scripts/notify-sites.mjs
