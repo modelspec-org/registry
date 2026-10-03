@@ -1,0 +1,70 @@
+name: Check the registry
+
+# inGitDB validates the database against its collection definitions (types,
+# required columns, enums, lengths, foreign keys). scripts/test.mjs proves, with
+# local fixture repositories and no network, that each check fails on a broken
+# entry. scripts/check.mjs then fetches every model at its commit and runs the
+# checks an inGitDB definition cannot express: the commit is on the default
+# branch, the model files are tracked regular files, the JSON AST is valid
+# ModelSpec and is what the HCL source says, the module and the address agree
+# with the files, and the licence is the one stated. index.json must equal what
+# `npm run index` writes. scripts/lint-hcl.mjs runs SpecScore's HCL parser and
+# ModelSpec linter over each source; scripts/test-ingitdb.mjs proves inGitDB
+# rejects each broken constraint.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the registry
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate the inGitDB database
+        uses: ingitdb/ingitdb-action@ec621991c6ca57d45a252c7d140eea1624f42ab9 # main, 2026-08-31 (the action has no release tag for it)
+        with:
+          cli-version: v0.68.2
+          database-root: .
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Prove the checks fail on broken entries
+        run: npm test
+      - name: Check every model at its pinned commit
+        run: npm run check
+      - name: index.json equals what npm run index writes
+        run: |
+          npm run index
+          git diff --exit-code -- index.json
+      - name: Lint each model source with SpecScore's ModelSpec linter
+        run: npm run lint:hcl
+      # The same CLI release as the validation above, checksum-verified, so the
+      # tests can show inGitDB rejecting each broken constraint.
+      - name: Install the pinned inGitDB CLI
+        env:
+          INGITDB_VERSION: 0.68.2
+          INGITDB_SHA256: d00ba83a02b64025884a495b94245640c760dc94d1726f4db6f33d32ec9d4dce
+        run: |
+          set -euo pipefail
+          archive="ingitdb_${INGITDB_VERSION}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location "https://github.com/ingitdb/ingitdb-cli/releases/download/v${INGITDB_VERSION}/${archive}" --output "${RUNNER_TEMP}/${archive}"
+          echo "${INGITDB_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict
+          tar --extract --gzip --file "${RUNNER_TEMP}/${archive}" --directory "${RUNNER_TEMP}" ingitdb
+      - name: Prove inGitDB rejects broken records
+        env:
+          INGITDB_CLI: ${{ runner.temp }}/ingitdb
+        run: npm run test:ingitdb

@@ -1,0 +1,21 @@
+{
+  "name": "modelspec-registry-checks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Checks and index writer for the ModelSpec registry. The registry is data (CC0-1.0); nothing here is published to npm.",
+  "license": "CC0-1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "index": "node scripts/build-index.mjs",
+    "lint:hcl": "node scripts/lint-hcl.mjs",
+    "test": "node --test scripts/test.mjs",
+    "test:ingitdb": "node --test scripts/test-ingitdb.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  }
+}

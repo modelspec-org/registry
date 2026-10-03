@@ -1,3 +1,360 @@
 # ModelSpec registry
 
-Public registry of ModelSpec models. Work in progress.
+The public list of [ModelSpec](https://modelspec.org) models: for each one, the
+address people write to refer to it, the repository it lives in, the commit
+that is its current reviewed version, its two model files (the HCL source and
+the JSON AST), its licence and its maintainers.
+
+| Id | Address | Repository at commit | Status |
+|---|---|---|---|
+| `chinook` | `modelspec://github.com/datatug/chinookdb/chinook` | [datatug/chinookdb@be96bf4](https://github.com/datatug/chinookdb/tree/be96bf45fdfa13559b6627d281c1e30ce92ad38f) | draft |
+
+Browse it at <https://modelspec.org/registry/> (being built; not live yet).
+This repository is the data behind that page.
+
+## What a model registry is for
+
+A ModelSpec model says what shape some data has: its entities, their fields,
+types and links, written once whatever stores it. Registering a model gives it
+one public address and a pinned, checked version. That makes three things
+possible:
+
+- **Start a project from a published model.** Instead of defining Chinook's
+  eleven entities again, a new project looks the address up, reads the two
+  files at the pinned commit and starts from them.
+- **Show that several databases are the same model.** If two hosters each
+  serve a database of Chinook, and both name `modelspec://github.com/datatug/chinookdb/chinook`
+  at the same commit, anyone can see they share a model without comparing the
+  databases field by field.
+- **Run many isolated databases of one model.** One engine, such as an
+  OpenVaultDB service, can hold one registered model
+  and run any number of separate databases of it. The model is registered once;
+  each database is a private copy of its shape.
+
+[MeaningGraph](https://meaninggraph.io) attaches meanings to a model's
+entities and properties, so one meaning file serves every database of the
+model. The OpenVaultDB Directory lists databases. This registry lists the
+models in between.
+
+## This repository is the registry
+
+The registry is this Git repository, not a database service. Registering a
+model, or moving it to a new commit, is a pull request; CI fetches the model at
+that commit and runs the checks below, so a model that does not check cannot be
+registered.
+
+Why Git and not a database as the source of truth:
+
+- **Review and history come free.** Every registration is a reviewed pull
+  request with an author, a diff and a permanent record.
+- **Nothing broken gets in.** The check runs before the merge, in the same
+  place as the change.
+- **It is where the models are.** Models live in Git repositories and are
+  pinned by commit. A registry in Git uses the same words.
+- **Anyone can read, fork or mirror it** without an account or a key, and it
+  costs nothing to run.
+
+A Firestore copy, if one is ever added, is only a search index: CI rebuilds it
+from this repository and nobody edits it. It is never the authority; when the
+two disagree, this repository is right.
+
+## It is an inGitDB database
+
+The registry is an [inGitDB](https://github.com/ingitdb/ingitdb-cli) database:
+plain YAML files in Git, with collection definitions that say which columns
+each record has. It can be read as plain files, written by pull request, and it
+is validated in two layers (see [Checks](#checks)). It has the same layout as
+the MeaningGraph registry.
+
+```
+.ingitdb/root-collections.yaml      the two collections and their directories
+models/.collection/definition.yaml  the columns of a model record
+models/$records/<id>.yaml           one record per model, keyed by registry id
+maintainers/$records/<github-handle>.yaml
+index.json                          every model in one file, generated
+scripts/                            the model checks and the index.json writer
+```
+
+Ways to read it:
+
+- **Plain files.** Fetch `models/$records/<id>.yaml`, or `index.json` for
+  everything at once.
+- **The inGitDB CLI**, in a clone:
+  `ingitdb select --path . --from models --where 'address==modelspec://github.com/datatug/chinookdb/chinook' --fields '$id,repository,commit'`
+- **Go, through [DALgo](https://github.com/dal-go/dalgo)**, with the
+  [`dalgo2ingitdb`](https://github.com/ingitdb/dalgo2ingitdb) adapter.
+
+## Format: `modelspec-registry/draft-1`
+
+A draft: it may change before `modelspec-registry/1`.
+
+### `models`: one record per model
+
+The file name is the registry id: `models/$records/chinook.yaml` registers
+`chinook`.
+
+| Column | Required | Meaning |
+|---|---|---|
+| (key) | yes | Registry id: lower-case letters, digits and single hyphens, at most 80 characters. |
+| `format` | yes | `modelspec-registry/draft-1`. |
+| `title` | yes | A short name. |
+| `description` | yes | What the model covers, in a few sentences. |
+| `status` | yes | `draft`, `published` or `deprecated`. |
+| `address` | yes | What consumers write: `modelspec://{host}/{org}/{repo}/{module}`, see [Addresses](#addresses). |
+| `repository` | yes | The repository's https URL on an allowed host (today only `github.com`), as `https://github.com/{org}/{repo}`: no `.git`, trailing slash, `.` or `..` segments. Two spellings that differ only in case are the same repository. |
+| `commit` | yes | Full 40-character commit id of the current reviewed version. It must be in the history of the repository's default branch. |
+| `module` | yes | The ModelSpec module's short name, the one the files declare as `module.name` and the last part of the address. A letter, then letters, digits and `_`. |
+| `source_file` | yes | The HCL source, a path in the repository ending `.modelspec.hcl`. |
+| `json_file` | yes | The JSON AST of that source, a path ending `.modelspec.json`. |
+| `licence` | yes | SPDX id of the model files' licence. |
+| `maintainers` | yes | GitHub handles; each one has a `maintainers` record. |
+
+Paths are exact: letters, digits, `.`, `_`, `-` and `/`, relative to the
+repository root, with no `..` and no pattern characters. A model is one HCL
+file and its JSON AST; a repository with several models has several records.
+
+### `maintainers`: one record per maintainer
+
+Keyed by GitHub handle, with a `name`.
+
+### Addresses
+
+The address is `modelspec://` and the repository without `https://`, then `/`
+and the module: `https://github.com/datatug/chinookdb` and the module `chinook`
+make `modelspec://github.com/datatug/chinookdb/chinook`. A model is pinned the
+way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and an
+entity of it is `modelspec://github.com/datatug/chinookdb/chinook.Invoice`.
+That grammar is not invented here: `meaning/draft-1`
+([`FORMAT.md` of `meaninggraph/core`](https://github.com/meaninggraph/core/blob/main/FORMAT.md))
+already reserves `modelspec://{host}/{org}/{repo}/{module}.{Entity}` for a
+binding to a model in another repository, and the registry's address is that
+without `.{Entity}`.
+
+ModelSpec itself names a module with `module.id`, a string it says should be
+"stable and globally meaningful", and defines no URL form (its
+[decision 0014](https://github.com/specscore/modelspec/blob/main/spec/decisions/0014-module-qualified-references.md)
+keeps URLs out of the language). The registry therefore adds a rule, not a
+conflict: the files' `module.name` is the record's `module`, and `module.id`
+starts with `{host}/{org}/{repo}/` and ends with `/{module}`. Chinook's is
+`github.com/datatug/chinookdb/model/chinook`: the directory the files live in
+sits between the repository and the module and is not part of the address.
+Draft 1 registers every model once, under one address.
+
+### Status
+
+`draft` means the model is usable and checked, but ModelSpec itself is still a
+draft (`1.0-draft`) and the model can change shape. `published` is for models
+in a stable ModelSpec, so consumers can rely on them not changing shape.
+`deprecated` keeps the record (old pins stay resolvable) but tells consumers to
+move on.
+
+## How to register a model
+
+Open a pull request that adds:
+
+1. `models/$records/<id>.yaml` with the columns above.
+2. `maintainers/$records/<handle>.yaml` if a maintainer is new here.
+3. The regenerated `index.json`: `npm ci && npm run index`.
+
+The model's repository must already have the commit on its default branch,
+with the HCL source, its JSON AST and a licence (a `Licence:` line at the top of
+the HCL, and a `LICENSE` file for the repository).
+
+Run the checks locally with `ingitdb validate`, `npm run check` and
+`npm run lint:hcl`; CI runs them on the pull request. The checks run git over
+https only and ignore your global and system git configuration (so an
+`insteadOf` rewrite to ssh does not apply) and any inherited `GIT_*`
+repository variables. Behind a proxy or a private certificate authority, set
+`HTTPS_PROXY` or `GIT_SSL_CAINFO`.
+
+## How to use it
+
+To resolve an address, look it up: `address` gives `repository` and `commit`,
+then read `files.source` or `files.json` at that commit. `index.json` has every
+model in one file, format `modelspec-registry/draft-1`:
+
+```json
+{
+  "format": "modelspec-registry/draft-1",
+  "checksum": "sha256:…",
+  "models": [{
+    "id": "chinook",
+    "title": "Chinook music store",
+    "description": "…",
+    "status": "draft",
+    "address": "modelspec://github.com/datatug/chinookdb/chinook",
+    "repository": "https://github.com/datatug/chinookdb",
+    "commit": "be96bf45fdfa13559b6627d281c1e30ce92ad38f",
+    "module": "chinook",
+    "module_id": "github.com/datatug/chinookdb/model/chinook",
+    "module_version": "0.1.0",
+    "modelspec": "1.0-draft",
+    "licence": "MIT",
+    "files": { "source": "model/chinook.modelspec.hcl", "json": "model/chinook.modelspec.json" },
+    "maintainers": ["trakhimenok"],
+    "entities": [{
+      "name": "Album",
+      "key": ["AlbumId"],
+      "use": [],
+      "properties": [
+        { "name": "AlbumId", "type": "int", "required": true, "key": true },
+        { "name": "ArtistId", "type": "reference", "references": "Artist", "required": true, "key": false }
+      ]
+    }],
+    "components": []
+  }]
+}
+```
+
+- A property is either a scalar (`type`: `string`, `int`, …), a **reference** to
+  another entity (`type` is `reference` and `references` names the entity), or an
+  embedded component (`type` is `component` and `component` names it).
+- `required` and `key` say whether the property is required and whether it is
+  part of the entity's key.
+- `use` lists the components an entity embeds, and `components` lists each
+  component the model declares with its `fields` (each with `name`, `type`,
+  `references` or `component`, and `required`), so a page can show the fields
+  an entity gets from a component. Chinook has none.
+- Models are sorted by `id`; entities, properties, components and fields keep
+  the order of the HCL source, also when a name looks like an integer (the index
+  is built from the source as lists, not from a JSON object, whose integer-like
+  names would come first). The file is the same bytes every time it is built
+  from the same records and commits.
+- `checksum` is `sha256:` and the SHA-256 of the `models` array written as
+  compact JSON (`JSON.stringify(index.models)`), so a consumer can check that
+  it read the whole file.
+
+## Versioning
+
+Moving a model to a new version is a pull request that changes `commit`; the
+checks run against the new commit. Older commits stay valid for anyone who pins
+them: a `?ref=` pin names an immutable commit, and the registry never rewrites
+a model's history, it only says which commit is current. The model's own
+`module.version` is in the JSON AST and in `index.json`.
+
+## Checks
+
+Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.yml)):
+
+1. **inGitDB** ([`ingitdb/ingitdb-action`](https://github.com/ingitdb/ingitdb-action),
+   at a pinned commit and CLI release) validates every record against its
+   collection definition: column types, required columns, the `status` and
+   `format` values, the 40-character `commit`, no unknown columns, and the
+   foreign keys (`maintainers` name maintainer records).
+2. **The model checks** (`npm run check`, [`scripts/check.mjs`](scripts/check.mjs))
+   cover what a collection definition cannot express, and everything that
+   needs the model's repository:
+   - ids follow the rule above; commits are lower-case hex; the licence is
+     SPDX-shaped; the address is the repository plus the module, and no
+     address is registered twice (compared ignoring case);
+   - the repository is an https URL on an allowed host with exactly two path
+     segments, none of them `.` or `..`, no `.git`, no trailing slash. Anything
+     else is refused before git runs;
+   - each model's commit can be fetched, and is in the history of the
+     repository's default branch. GitHub serves a fork's commits through the
+     parent repository's URL, so "can be fetched" alone would let a fork's
+     commit be registered under the parent's address;
+   - both files are tracked regular files at that commit: not missing, not
+     symbolic links or submodules, not directories, not larger than 5 MiB;
+   - the JSON AST passes the structural checks that ModelSpec's
+     [JSON format](https://github.com/specscore/modelspec/blob/main/spec/json-format.md)
+     lists (version, module, unique names, references that resolve, supported
+     types and constraints, keys, enum values) and has at least one entity. The
+     JSON is read with a reader that refuses a name used twice in one object
+     (`JSON.parse` would keep the last one), and a name such as `constructor`
+     or `toString` is an ordinary name;
+   - the module the files declare is the record's `module`, and `module.id`
+     fits the address (see [Addresses](#addresses));
+   - the JSON AST is what the HCL source says (see below);
+   - the licence is the one the record states: what the HCL declares in a
+     `Licence:` or `SPDX-License-Identifier:` line at the top, or, when it
+     declares none, and for the JSON, the licence of the repository's
+     unsuffixed `LICENSE` file (or, without one, the one licence all its
+     `LICENSE` files name);
+   - `index.json` is what `npm run index` writes.
+
+   Git is run the same hardened way as in the MeaningGraph registry:
+   argument lists and never a shell; every URL and revision after
+   `--end-of-options`, so a value starting with `-` cannot be an option; https
+   only (`GIT_ALLOW_PROTOCOL`); global and system git configuration ignored and
+   every inherited `GIT_*` variable dropped; repositories created without
+   templates; hooks, file-system monitors and replace refs switched off
+   (`core.hooksPath`, `core.fsmonitor`, `core.useReplaceRefs`,
+   `GIT_NO_REPLACE_OBJECTS`), so no repository can run code of its own or make
+   an object id read as something else; literal pathspecs, with the path git
+   returns compared with the path asked for; and files read from the object
+   store by object id, never checked out.
+
+   **The cache is never in the checkout.** Fetched repositories are kept in a
+   per-user directory, `$XDG_CACHE_HOME/modelspec-registry` or
+   `~/.cache/modelspec-registry`, created private (`0700`) and refused when it
+   is a symbolic link, owned by someone else, or writable by others. A pull
+   request cannot plant anything there, and a checkout that tracks a `.cache`
+   is refused outright (`git rm -r --cached .cache`). Even in that directory
+   nothing is trusted: a cached repository is reused only when its
+   configuration holds only what the registry writes (for a history clone, with
+   the expected URL as its remote), it has no alternates, hooks or replace
+   refs, and `git fsck` passes; otherwise it is deleted and fetched again. A
+   history clone is refreshed through its own remote, and is cloned again when
+   that fails, so a publisher moving its default branch never breaks the check.
+3. **SpecScore's linter** (`npm run lint:hcl`, [`scripts/lint-hcl.mjs`](scripts/lint-hcl.mjs))
+   runs `specscore graph lint` over each HCL source. It is the one real ModelSpec
+   HCL parser there is today, and checks syntax, references, reserved names
+   and duplicates. The SpecScore release is pinned by version and SHA-256, and
+   the hash is checked before every run, not only after a download: the cached
+   archive must match it (or is downloaded again), and the binary is unpacked
+   fresh from those verified bytes into a private directory that is removed
+   afterwards. A binary lying in the cache is never executed. `SPECSCORE=<path>`
+   runs a binary you name instead.
+
+`npm test` proves each of these fails on a broken entry, offline, with local
+git repositories standing in for https URLs: every kind of repository value
+that is refused, an option-shaped URL or revision, a file URL when only https is
+allowed, a global git configuration that tries to redirect a fetch, inherited
+`GIT_*` variables, glob and magic pathspecs, an unknown commit, a commit only a
+side branch has, a missing, symbolic-link, submodule, directory or oversized
+file, a JSON file that is not JSON or breaks each structural rule, a module or
+`module.id` that disagrees with the record, a JSON AST that differs from its
+HCL source in each way, an HCL source the registry cannot read, each licence
+mismatch, a missing, stale or edited `index.json`, and the cache: a tracked
+`.cache`, an unsafe cache directory, a cached repository carrying a forged
+replace ref, a planted hook, a redirecting configuration, an alternates file or
+a corrupt object, a publisher's branch that moves between two runs, a planted or
+tampered linter binary or archive, and names such as `constructor`, `__proto__`
+and a name used twice in the JSON. `npm run test:ingitdb`
+(with `INGITDB_CLI` set to the CLI) proves inGitDB rejects each broken
+constraint of the collection definitions.
+
+### What ModelSpec gives the checks, and what it does not yet
+
+ModelSpec is specified, but its tooling is not all published. As of
+[`specscore/modelspec@82dfe38`](https://github.com/specscore/modelspec/tree/82dfe38cef1dbdd88b915734502b14b6df0a8f39):
+
+- **No JSON Schema is published yet.** Its JSON format and its
+  [decision 0010](https://github.com/specscore/modelspec/blob/main/spec/decisions/0010-json-schema-publication.md)
+  promise `schema/modelspec-ast-1.0-draft.schema.json`, but `schema/` holds only
+  a README. So the registry cannot validate the JSON AST against a published
+  schema, and does not pin one. It implements the structural checks that the
+  JSON format document lists (`scripts/lib/modelspec.mjs`, the same code that
+  `meaninggraph/core` and `datatug/chinookdb` use). When the schema is
+  published, pin it and use it here.
+- **ModelSpec has no parser or serializer of its own.** The only HCL parser is
+  SpecScore's, a Go program that checks a source but does not write JSON. So
+  "the JSON AST matches the HCL source" is checked with a small converter in
+  this repository for the HCL ModelSpec v0 allows (entities, components and
+  enums, with literal values), which writes the JSON AST from the source and
+  compares it with the published one, ignoring the module (HCL has nowhere to
+  state it), the order of names and the layout. A source with collections,
+  recordsets, projections, `index` blocks or expressions is refused rather than
+  guessed at (so a model that declares an index cannot be registered yet), and
+  so is a module-qualified reference to another module (ModelSpec's
+  [decision 0014](https://github.com/specscore/modelspec/blob/main/spec/decisions/0014-module-qualified-references.md)
+  leaves finding modules to the consumer, and the registry has no resolver
+  yet). Full equivalence, for the whole language, awaits ModelSpec's own
+  tooling.
+
+## Licence
+
+Everything in this repository (the records, the collection definitions,
+`index.json`, the scripts) is [CC0-1.0](LICENSE). The models keep their own
+licences, which each entry states.
