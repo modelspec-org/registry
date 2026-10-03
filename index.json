@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:5916bb0f9f6a83a43207b79cadd54eb987dd4d3efdc6f60b128ecb80fc67b428",
+  "checksum": "sha256:ebca1ea7479d8796d347b660df9d9296056f3a39567766ec7093ac845827460b",
   "models": [
     {
       "id": "chinook",
@@ -10,7 +10,7 @@
       "homepage": "https://chinookdb.com/model/",
       "address": "modelspec://github.com/datatug/chinookdb/chinook",
       "repository": "https://github.com/datatug/chinookdb",
-      "commit": "8c9e62ed6641c0a00faa3867167d928af4c44b06",
+      "commit": "f0c71b959bd082c3ec495df5fbecb4af014d6d12",
       "module": "chinook",
       "module_id": "github.com/datatug/chinookdb/model/chinook",
       "module_version": "0.1.0",
