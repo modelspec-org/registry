@@ -1,8 +1,16 @@
 {
-  "index": "modelspec-registry",
   "sites": [
-    "specscore/modelspec",
-    "sneat-co/meaninggraph",
-    "openvaultdb/ovdb-directory"
+    {
+      "repo": "specscore/modelspec",
+      "secret": "SITES_TRIGGER_TOKEN_SPECSCORE"
+    },
+    {
+      "repo": "sneat-co/meaninggraph",
+      "secret": "SITES_TRIGGER_TOKEN_SNEAT_CO"
+    },
+    {
+      "repo": "openvaultdb/ovdb-directory",
+      "secret": "SITES_TRIGGER_TOKEN_OPENVAULTDB"
+    }
   ]
 }

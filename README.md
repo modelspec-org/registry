@@ -404,7 +404,11 @@ ModelSpec is specified, but its tooling is not all published. As of
 
 ## Notifying the sites
 
-A change to `index.json` on `main` notifies the sites built from it, so they redeploy.
+A change to `index.json` on `main` notifies the sites built from it, so they redeploy. `.github/workflows/notify-sites.yml` starts the `deploy.yml` workflow, on `main`, of each site listed in `scripts/notify-sites.json`, sending only a reason; each site works out for itself what changed and stops at once when nothing did. The workflow can also be run by hand on `main`.
+
+**Tokens.** Each site is started with a token, stored as a repository secret whose name `scripts/notify-sites.json` gives per site, one secret per site owner. A token is a fine-grained personal access token whose resource owner is that owner, limited to the one site repository, with the single permission Actions: read and write. A site whose secret is missing is skipped with a notice and the run stays green; a secret that is present but rejected turns the run red at the end, after every site was attempted. The workflow runs only for a push to `main` or a manual run on `main` in this repository, never for a pull request or a fork, and each token reaches only the one `gh` call for its site.
+
+**Landing order.** Land the deploy workflows of the sites first (until a site has one, starting it fails), then this change, then add the secrets.
 
 ## Licence
 
