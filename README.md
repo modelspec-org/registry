@@ -402,6 +402,10 @@ ModelSpec is specified, but its tooling is not all published. As of
   yet). Full equivalence, for the whole language, awaits ModelSpec's own
   tooling.
 
+## Notifying the sites
+
+A change to `index.json` on `main` notifies the sites built from it, so they redeploy.
+
 ## Licence
 
 Everything in this repository (the records, the collection definitions,

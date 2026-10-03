@@ -1,0 +1,56 @@
+# Tells the sites built from index.json that it changed: starts the Deploy workflow, on main, of each site
+# listed in scripts/notify-sites.json (scripts/notify-sites.mjs). Each site compares the live site with
+# the current indexes first and stops at once when nothing differs, so a duplicate or late notification
+# costs it seconds.
+#
+# Each site is told which index changed and the checksum index.json now carries, because a site reads the index
+# through a cache that can be five minutes old: it waits until it sees that checksum before it builds.
+#
+# Needs the SITES_DEPLOY_TRIGGER_TOKEN secret: a token that can start workflows on those sites (Actions: read and
+# write on each of them, and nothing else). It is used here and only here: by the job below, which runs only
+# for a push to main or a manual run on main in this repository, never for a pull request or a fork. Without it
+# the job says so and ends green. With it, every site is attempted; the job fails at the end if any could not
+# be started, so a broken token is visible.
+name: Notify the sites
+
+on:
+  push:
+    branches: [main]
+    paths: [index.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notify-sites
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    name: notify
+    if: github.repository == 'modelspec-org/registry' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # 'true' when the token exists (compared here, so the secret is not copied into a step)
+      HAS_TOKEN: ${{ secrets.SITES_DEPLOY_TRIGGER_TOKEN != '' }}
+    steps:
+      - name: Skipped, no token
+        if: env.HAS_TOKEN != 'true'
+        run: |
+          echo "::notice::No SITES_DEPLOY_TRIGGER_TOKEN secret: the sites were not notified."
+          echo "Sites not notified: no SITES_DEPLOY_TRIGGER_TOKEN secret." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.HAS_TOKEN == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: env.HAS_TOKEN == 'true'
+        with:
+          node-version: 24
+      - name: Start the Deploy workflow of each site
+        if: env.HAS_TOKEN == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SITES_DEPLOY_TRIGGER_TOKEN }}
+        run: node scripts/notify-sites.mjs

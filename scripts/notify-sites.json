@@ -1,0 +1,8 @@
+{
+  "index": "modelspec-registry",
+  "sites": [
+    "specscore/modelspec",
+    "sneat-co/meaninggraph",
+    "openvaultdb/ovdb-directory"
+  ]
+}
