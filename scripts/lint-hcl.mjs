@@ -10,50 +10,29 @@
 // the real parser, reference resolution, reserved names, duplicate concepts and
 // enum values: what scripts/check.mjs cannot check with its own subset parser.
 // The release is pinned by version and SHA-256, the same one datatug/chinookdb
-// lints with.
-import { createHash } from 'node:crypto';
+// lints with; its archive is verified against the pin before every run and the
+// binary is unpacked fresh from it (scripts/lib/specscore.mjs). Caches live in
+// the per-user cache directory, never in the checkout.
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { git, openCommit } from './lib/git.mjs';
+import { defaultCacheDir, git, openCommit, trackedCacheProblems } from './lib/git.mjs';
 import { readRegistry, recordProblems, wellFormed } from './lib/registry.mjs';
+import { specscoreBinary } from './lib/specscore.mjs';
 
-const version = '0.54.2';
-const builds = {
-  'linux/x64': { asset: 'linux_amd64', sha: 'e13ddf1543768bbe1f4573bc99202f6e5729b3d2b140c37bad972bdfdf8af12a' },
-  'darwin/arm64': { asset: 'darwin_arm64', sha: 'ddc0861c589961b8392607473cd767f07746dad733bdd0af713aa13c69f133f8' },
-};
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const cacheDir = join(root, '.cache');
-
-async function specscoreBinary() {
-  if (process.env.SPECSCORE) return process.env.SPECSCORE;
-  const build = builds[`${process.platform}/${process.arch}`];
-  if (!build) throw new Error(`no pinned specscore build for ${process.platform}/${process.arch}; set SPECSCORE to an installed binary`);
-  const dir = join(cacheDir, `specscore-${version}-${build.asset}`);
-  const binary = join(dir, 'specscore');
-  if (existsSync(binary)) return binary;
-  const archive = `specscore_${version}_${build.asset}.tar.gz`;
-  const response = await fetch(`https://github.com/specscore/specscore-cli/releases/download/v${version}/${archive}`);
-  if (!response.ok) throw new Error(`cannot download ${archive}: HTTP ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const actual = createHash('sha256').update(bytes).digest('hex');
-  if (actual !== build.sha) throw new Error(`${archive} SHA-256 is ${actual}, expected ${build.sha}`);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, archive), bytes);
-  execFileSync('tar', ['-xzf', join(dir, archive), '-C', dir, 'specscore']);
-  return binary;
-}
 
 const registry = readRegistry(root);
-const problems = [...registry.problems, ...recordProblems(registry)];
+const problems = [...trackedCacheProblems(root), ...registry.problems, ...recordProblems(registry)];
 if (problems.length > 0) {
   for (const problem of problems) console.error(`error: ${problem}`);
   process.exit(1);
 }
-const specscore = await specscoreBinary();
+const cacheDir = defaultCacheDir();
+const { path: specscore, dispose } = await specscoreBinary({ cacheDir });
+process.on('exit', dispose);
 const run = (cwd, ...args) => execFileSync(specscore, [...args, '--no-telemetry'], { cwd, stdio: 'pipe' }).toString();
 let failed = 0;
 for (const record of registry.models.filter(wellFormed)) {

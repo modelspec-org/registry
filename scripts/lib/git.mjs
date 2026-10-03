@@ -17,6 +17,16 @@
 //   inherited GIT_* variable is dropped, so a local insteadOf rewrite, hook
 //   setting or GIT_DIR cannot change what is fetched or run. Repositories are
 //   initialised without templates, so no hook is ever copied in.
+// - Hooks, file-system monitors and replace refs never act (-c core.hooksPath,
+//   core.fsmonitor, core.useReplaceRefs, GIT_NO_REPLACE_OBJECTS), so a
+//   repository in the cache cannot run code of its own or swap one object for
+//   another however it got there.
+// - The cache lives outside the checkout, in a per-user directory
+//   (defaultCacheDir) that must be private to the current user, and nothing in
+//   it is trusted: a cached repository is used only when its configuration is
+//   one this module writes, it has no alternates, hooks or replace refs, and
+//   git fsck passes; anything else is deleted and fetched again. A checkout
+//   that tracks a `.cache` is refused (trackedCacheProblems).
 // - Pathspecs are literal (--literal-pathspecs): a path from a record is a
 //   path, never a glob or a `:(magic)` pathspec. The entry git returns is then
 //   compared with the path that was asked for, and anything else is refused.
@@ -28,9 +38,9 @@
 //   tree entry that lookup() reports as a link and read() refuses.
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
-import { devNull } from 'node:os';
-import { join } from 'node:path';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, renameSync, rmSync } from 'node:fs';
+import { devNull, homedir } from 'node:os';
+import { isAbsolute, join } from 'node:path';
 
 export const commitPattern = /^[0-9a-f]{40}$/;
 const objectIdPattern = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
@@ -52,10 +62,68 @@ export const setGitProtocols = (protocols) => { allowedProtocols = protocols; };
 const keptGitVariables = new Set(['GIT_SSL_CAINFO', 'GIT_SSL_CAPATH', 'GIT_TRACE', 'GIT_TRACE_PACKET', 'GIT_CURL_VERBOSE']);
 export const gitEnv = () => ({
   ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_') || keptGitVariables.has(name))),
-  GIT_TERMINAL_PROMPT: '0', GIT_ALLOW_PROTOCOL: allowedProtocols, GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_NOSYSTEM: '1',
+  GIT_TERMINAL_PROMPT: '0', GIT_ALLOW_PROTOCOL: allowedProtocols, GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1',
 });
-export const git = (args, options = {}) => execFileSync('git', ['--literal-pathspecs', ...args], { stdio: 'pipe', env: gitEnv(), maxBuffer: 256 * 1024 * 1024, ...options }).toString();
+// Hooks are pointed at a path with no hooks in it, fsmonitor is off and replace
+// refs are ignored, so a repository in the cache cannot run code of its own or
+// change what an object id reads as.
+export const safeGitConfig = ['-c', `core.hooksPath=${devNull}`, '-c', 'core.fsmonitor=false', '-c', 'core.useReplaceRefs=false'];
+export const git = (args, options = {}) => execFileSync('git', [...safeGitConfig, '--literal-pathspecs', ...args], { stdio: 'pipe', env: gitEnv(), maxBuffer: 256 * 1024 * 1024, ...options }).toString();
 export const lastLine = (error) => String(error.stderr ?? error.message).trim().split('\n').filter(Boolean).pop() ?? 'failed';
+
+// The per-user directory the caches live in: $XDG_CACHE_HOME (when absolute) or
+// ~/.cache, then modelspec-registry. Never inside a checkout. Created 0700;
+// refused unless it is a real directory (not a symbolic link) owned by the
+// current user and not writable by anyone else. `env`, `home` and `uid` are for
+// the tests.
+export function defaultCacheDir({ env = process.env, home = homedir(), uid = process.getuid?.() } = {}) {
+  const base = env.XDG_CACHE_HOME && isAbsolute(env.XDG_CACHE_HOME) ? env.XDG_CACHE_HOME : join(home, '.cache');
+  const dir = join(base, 'modelspec-registry');
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const stat = lstatSync(dir);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`${dir} is not a directory; the cache must be a real per-user directory`);
+  if (uid !== undefined && stat.uid !== uid) throw new Error(`${dir} is owned by another user; the cache must be yours`);
+  if ((stat.mode & 0o022) !== 0) throw new Error(`${dir} is writable by others; the cache must be private (chmod 700)`);
+  return dir;
+}
+
+// Problems when the checkout tracks anything under `.cache`: the cache is never
+// read from the checkout, and a pull request that adds one is refused. A
+// directory that is not a git checkout has nothing tracked.
+export function trackedCacheProblems(root) {
+  let tracked;
+  try { tracked = git(['-C', root, 'ls-files', '-z', '--', '.cache']).split('\0').filter(Boolean); } catch { return []; }
+  return tracked.length === 0 ? [] : [`.cache is tracked in this checkout (${tracked.slice(0, 3).join(', ')}${tracked.length > 3 ? ', …' : ''}); the registry keeps its caches outside the checkout and never reads one from it. Remove it with git rm -r --cached .cache`];
+}
+
+// The configuration a repository this module made can have. Anything else in a
+// cached repository's config (hooksPath, fsmonitor, insteadOf, an include, an
+// alias, a credential or protocol setting) means it was not made here.
+const coreKeys = /^core\.(repositoryformatversion|filemode|bare|logallrefupdates|ignorecase|precomposeunicode|symlinks)$/;
+const historyKeys = [coreKeys, /^remote\.origin\.(url|fetch|promisor|partialclonefilter)$/, /^extensions\.(partialclone|objectformat)$/, /^branch\..+\.(remote|merge)$/];
+const commitKeys = [coreKeys, /^extensions\.objectformat$/];
+
+// Whether a cached bare repository is what this module made: only safe
+// configuration (for a history clone, with its remote being `url`), no
+// alternates, no hooks, no replace refs, and every object it holds hashes to its
+// name (git fsck). A repository that fails is thrown away and fetched again.
+export function cacheRepoSound(dir, { url } = {}) {
+  try {
+    if (!existsSync(join(dir, 'HEAD'))) return false;
+    if (existsSync(join(dir, 'objects', 'info', 'alternates')) || existsSync(join(dir, 'commondir'))) return false;
+    if (existsSync(join(dir, 'hooks')) && readdirSync(join(dir, 'hooks')).length > 0) return false;
+    const keys = git(['config', '--file', join(dir, 'config'), '--list', '--name-only']).split('\n').filter(Boolean);
+    if (!keys.every((key) => (url === undefined ? commitKeys : historyKeys).some((pattern) => pattern.test(key)))) return false;
+    if (url !== undefined && git(['config', '--file', join(dir, 'config'), '--get', 'remote.origin.url']).trim() !== url) return false;
+    if (git(['--git-dir', dir, 'for-each-ref', '--format=%(refname)', 'refs/replace']).trim() !== '') return false;
+    git(['--git-dir', dir, 'fsck', '--no-dangling', '--no-progress']);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const historyPath = (cacheDir, url, branch) => join(cacheDir, createHash('sha256').update(`${url}#${branch}`).digest('hex').slice(0, 32));
 
 // `{host}/{org}/{repo}` of a repository's canonical https form, or null. One
 // spelling per repository: an allow-listed host (no www., no IP literal, no
@@ -95,23 +163,30 @@ export function defaultBranch(url) {
 // not have is not in that history either.
 export function onBranch(url, branch, commit, cacheDir, fetched = new Set()) {
   if (!commitPattern.test(commit) || !refNamePattern.test(branch)) return false;
-  const dir = join(cacheDir, createHash('sha256').update(`${url}#${branch}`).digest('hex').slice(0, 32));
+  const dir = historyPath(cacheDir, url, branch);
   const ref = `refs/heads/${branch}`;
   if (!fetched.has(dir)) {
+    const clone = () => {
+      rmSync(dir, { recursive: true, force: true });
+      mkdirSync(cacheDir, { recursive: true });
+      git(['clone', '-q', '--bare', '--template=', '--filter=tree:0', '--single-branch', '--branch', branch, '--end-of-options', url, dir]);
+    };
     try {
-      if (existsSync(join(dir, 'HEAD'))) git(['-C', dir, 'fetch', '-q', '--force', '--end-of-options', url, `+${ref}:${ref}`]);
-      else {
-        rmSync(dir, { recursive: true, force: true });
-        mkdirSync(cacheDir, { recursive: true });
-        git(['clone', '-q', '--bare', '--template=', '--filter=tree:0', '--single-branch', '--branch', branch, '--end-of-options', url, dir]);
+      let refreshed = false;
+      if (cacheRepoSound(dir, { url })) {
+        // Through the clone's own remote, which knows it is a partial clone: a
+        // fetch by URL asks for objects the clone never had once the branch has
+        // moved. If it fails anyway, the clone is thrown away and made again.
+        try { git(['--git-dir', dir, 'fetch', '-q', '--force', 'origin', `+${ref}:${ref}`]); refreshed = true; } catch { /* clone again */ }
       }
+      if (!refreshed) clone();
     } catch (error) {
       throw new Error(`cannot read the history of ${branch} in ${url}: ${lastLine(error)}`);
     }
     fetched.add(dir);
   }
   try {
-    git(['-C', dir, 'merge-base', '--is-ancestor', '--end-of-options', commit, ref]);
+    git(['--git-dir', dir, 'merge-base', '--is-ancestor', '--end-of-options', commit, ref]);
     return true;
   } catch {
     return false;
@@ -147,16 +222,16 @@ export function openCommit(url, commit, cacheDir) {
   if (!commitPattern.test(commit)) throw new Error(`${commit} is not a full commit id`);
   const dir = join(cacheDir, `${createHash('sha256').update(url).digest('hex').slice(0, 24)}-${commit}`);
   const ready = () => {
-    try { git(['-C', dir, 'cat-file', '-e', `${commit}^{commit}`]); return true; } catch { return false; }
+    try { git(['--git-dir', dir, 'cat-file', '-e', `${commit}^{commit}`]); return true; } catch { return false; }
   };
-  if (!(existsSync(join(dir, 'HEAD')) && ready())) {
+  if (!(cacheRepoSound(dir) && ready())) {
     rmSync(dir, { recursive: true, force: true });
     mkdirSync(cacheDir, { recursive: true });
     const work = mkdtempSync(join(cacheDir, '.fetch-'));
     try {
       git(['init', '-q', '--bare', '--template=', work]);
-      git(['-C', work, 'fetch', '-q', '--depth', '1', '--end-of-options', url, commit]);
-      if (git(['-C', work, 'rev-parse', 'FETCH_HEAD']).trim() !== commit) throw new Error('did not fetch that commit');
+      git(['--git-dir', work, 'fetch', '-q', '--depth', '1', '--end-of-options', url, commit]);
+      if (git(['--git-dir', work, 'rev-parse', 'FETCH_HEAD']).trim() !== commit) throw new Error('did not fetch that commit');
       renameSync(work, dir);
     } catch (error) {
       rmSync(work, { recursive: true, force: true });
@@ -165,7 +240,7 @@ export function openCommit(url, commit, cacheDir) {
   }
   const find = (path) => {
     if (!isRepositoryPath(path)) throw new Error(`${JSON.stringify(path)} is not a plain path inside the repository`);
-    return entryFor(path, git(['-C', dir, 'ls-tree', '-z', '--end-of-options', commit, '--', path]));
+    return entryFor(path, git(['--git-dir', dir, 'ls-tree', '-z', '--end-of-options', commit, '--', path]));
   };
   const lookup = (path) => {
     const entry = find(path);
@@ -177,12 +252,12 @@ export function openCommit(url, commit, cacheDir) {
     const status = lookup(path);
     if (status !== 'file') throw new Error(`${path} is ${status === 'missing' ? 'not in' : 'not a regular file of'} the repository at ${commit}`);
     const { id } = find(path);
-    const size = Number(git(['-C', dir, 'cat-file', '-s', id]).trim());
+    const size = Number(git(['--git-dir', dir, 'cat-file', '-s', id]).trim());
     if (!(size <= maxFileBytes)) throw new Error(`${path} is ${size} bytes, more than the ${maxFileBytes} the registry reads`);
-    return git(['-C', dir, 'cat-file', 'blob', id]);
+    return git(['--git-dir', dir, 'cat-file', 'blob', id]);
   };
   // The names (and modes) of the files in the repository root, for LICENSE files.
-  const rootNames = () => git(['-C', dir, 'ls-tree', '-z', '--end-of-options', commit]).split('\0').filter(Boolean).map((line) => {
+  const rootNames = () => git(['--git-dir', dir, 'ls-tree', '-z', '--end-of-options', commit]).split('\0').filter(Boolean).map((line) => {
     const tab = line.indexOf('\t');
     return { name: line.slice(tab + 1), mode: line.slice(0, tab).split(' ')[0] };
   });

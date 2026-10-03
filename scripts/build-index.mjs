@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { buildIndex, loadModels } from './lib/registry.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const { problems, entries } = loadModels({ root });
+let loaded;
+try { loaded = loadModels({ root }); } catch (error) { console.error(`error: ${error.message}`); process.exit(1); }
+const { problems, entries } = loaded;
 if (problems.length > 0) {
   for (const problem of problems) console.error(`error: ${problem}`);
   console.error('index.json not written: fix the problems above (npm run check lists them)');

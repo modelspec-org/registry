@@ -7,14 +7,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, test } from 'node:test';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { addressOf, defaultBranch, entryFor, gitEnv, git, isRepositoryPath, maxFileBytes, onBranch, openCommit, repositoryHosts, repositoryKey, setGitProtocols } from './lib/git.mjs';
-import { astDifferences, describeEntities, parseHcl, serializeModel, toModelspecJson, validateModel } from './lib/modelspec.mjs';
+import { addressOf, cacheRepoSound, defaultBranch, defaultCacheDir, entryFor, gitEnv, git, historyPath, isRepositoryPath, maxFileBytes, onBranch, openCommit, repositoryHosts, repositoryKey, setGitProtocols, trackedCacheProblems } from './lib/git.mjs';
+import { astDifferences, describeModel, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel } from './lib/modelspec.mjs';
+import { specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
 import { buildIndex, checkRegistry, declaredLicence, loadModels, readRegistry, recordProblems, registryFormat, wellFormed } from './lib/registry.mjs';
 
 // The local repositories that stand in for https URLs are file:// URLs, at
@@ -56,6 +57,9 @@ function origin(name, files, { side, symlinks = {}, gitlinks = [] } = {}) {
     return gitIn(dir, 'rev-parse', 'HEAD');
   };
   gitIn(dir, 'init', '-q', '-b', 'main');
+  // So that a --filter=tree:0 clone of it really is a partial clone, as one of GitHub's is.
+  gitIn(dir, 'config', 'uploadpack.allowFilter', 'true');
+  gitIn(dir, 'config', 'uploadpack.allowAnySHA1InWant', 'true');
   put(files);
   for (const [path, target] of Object.entries(symlinks)) { mkdirSync(dirname(join(dir, path)), { recursive: true }); symlinkSync(target, join(dir, path)); }
   const head = commit('files', gitlinks);
@@ -200,9 +204,10 @@ test('a well-formed fixture model passes, so the failures below are about what e
   const dir = registry({ fine: fixtureRecord(source) });
   assert.deepEqual(check(dir).problems, []);
   const { entries } = loadModels(options(dir));
+  assert.deepEqual(entries[0].components, []);
   assert.deepEqual(entries[0].entities, [
-    { name: 'Artist', key: ['ArtistId'], properties: [{ name: 'ArtistId', type: 'int', required: true, key: true }, { name: 'Name', type: 'string', required: false, key: false }] },
-    { name: 'Album', key: ['AlbumId'], properties: [{ name: 'AlbumId', type: 'int', required: true, key: true }, { name: 'ArtistId', type: 'reference', references: 'Artist', required: true, key: false }] },
+    { name: 'Artist', key: ['ArtistId'], use: [], properties: [{ name: 'ArtistId', type: 'int', required: true, key: true }, { name: 'Name', type: 'string', required: false, key: false }] },
+    { name: 'Album', key: ['AlbumId'], use: [], properties: [{ name: 'AlbumId', type: 'int', required: true, key: true }, { name: 'ArtistId', type: 'reference', references: 'Artist', required: true, key: false }] },
   ]);
   assert.deepEqual([entries[0].module, entries[0].module_id, entries[0].module_version, entries[0].modelspec], ['fixture', moduleFor('fine').id, '0.1.0', '1.0-draft']);
 });
@@ -487,7 +492,7 @@ const withJson = (name, change, options = {}) => {
 };
 
 test('a JSON file that is not JSON, or not an object, fails', () => {
-  expectProblem(problemsOf(modelOrigin('not-json', { json: '{ nope' })), /fixture\.modelspec\.json is not JSON: /);
+  expectProblem(problemsOf(modelOrigin('not-json', { json: '{ nope' })), /fixture\.modelspec\.json is not JSON, or repeats a name: /);
   expectProblem(problemsOf(modelOrigin('json-array', { json: '[]' })), /model\/fixture\.modelspec\.json: the JSON AST must be an object/);
   expectProblem(problemsOf(modelOrigin('json-null', { json: 'null' })), /the JSON AST must be an object/);
   expectProblem(problemsOf(modelOrigin('json-string', { json: '"x"' })), /the JSON AST must be an object/);
@@ -596,9 +601,11 @@ test('the ModelSpec converter and checks do what the specification says', () => 
   assert.deepEqual(validateModel(json), []);
   assert.deepEqual(astDifferences(json, json), []);
   assert.deepEqual(astDifferences({ ...json, module: { id: 'a', name: 'a', version: '1' } }, json), [], 'module is ignored');
-  assert.deepEqual(describeEntities({ entities: { A: { key: ['x', 'y'], use: ['C'], properties: { x: { type: 'int', required: true }, y: { entity: 'B' }, z: { component: 'C' } } } } }), [
-    { name: 'A', key: ['x', 'y'], properties: [{ name: 'x', type: 'int', required: true, key: true }, { name: 'y', type: 'reference', references: 'B', required: false, key: true }, { name: 'z', type: 'component', component: 'C', required: false, key: false }] },
-  ]);
+  const described = describeModel(parseHcl('component "Audit" {\n  field "at" {\n    type = "datetime"\n    required = true\n  }\n  field "by" {\n    entity = "B"\n  }\n}\nentity "A" {\n  key = ["x", "y"]\n  use = ["Audit"]\n  property "x" {\n    type = "int"\n    required = true\n  }\n  property "y" {\n    entity = "B"\n  }\n  property "z" {\n    component = "Audit"\n  }\n}\n'));
+  assert.deepEqual(described, {
+    entities: [{ name: 'A', key: ['x', 'y'], use: ['Audit'], properties: [{ name: 'x', type: 'int', required: true, key: true }, { name: 'y', type: 'reference', references: 'B', required: false, key: true }, { name: 'z', type: 'component', component: 'Audit', required: false, key: false }] }],
+    components: [{ name: 'Audit', fields: [{ name: 'at', type: 'datetime', required: true }, { name: 'by', type: 'reference', references: 'B', required: false }] }],
+  });
   // Components and named enums round-trip through the converter and validate.
   const rich = toModelspecJson(parseHcl('component "Audit" {\n  field "at" {\n    type = "datetime"\n  }\n}\nenum "Colour" {\n  values = ["red", "green"]\n}\nentity "Thing" {\n  key = ["id"]\n  use = ["Audit"]\n  property "id" {\n    type = "uuid"\n  }\n  property "colour" {\n    type = "string"\n    enum = "Colour"\n  }\n}\n'), moduleFor('spec'));
   assert.deepEqual(validateModel(rich), []);
@@ -691,7 +698,7 @@ test('buildIndex is deterministic: sorted by id, the checksum is the sha256 of t
   assert.equal(index.checksum, `sha256:${createHash('sha256').update(JSON.stringify(index.models)).digest('hex')}`);
   assert.match(index.checksum, /^sha256:[0-9a-f]{64}$/);
   assert.ok(written.endsWith('}\n'));
-  assert.deepEqual(Object.keys(index.models[0]), ['id', 'title', 'description', 'status', 'address', 'repository', 'commit', 'module', 'module_id', 'module_version', 'modelspec', 'licence', 'files', 'maintainers', 'entities']);
+  assert.deepEqual(Object.keys(index.models[0]), ['id', 'title', 'description', 'status', 'address', 'repository', 'commit', 'module', 'module_id', 'module_version', 'modelspec', 'licence', 'files', 'maintainers', 'entities', 'components']);
   // The checksum covers the models: change one and it changes.
   const changed = JSON.parse(written);
   changed.models[0].commit = 'f'.repeat(40);
@@ -707,4 +714,409 @@ test('a second model of the same repository is a second entry', () => {
   });
   assert.deepEqual(check(dir).problems, []);
   assert.deepEqual(JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8')).models.map((model) => model.address), ['modelspec://example.test/fixtures/two-modules/fixture', 'modelspec://example.test/fixtures/two-modules/other']);
+});
+
+// ---- the cache: nothing in it, or near it, is trusted ----------------------
+
+const sha256 = (data) => createHash('sha256').update(data).digest('hex');
+const freshCache = () => join(scratch, `cache-${count++}`);
+const rawGit = (dir, ...args) => execFileSync('git', ['--git-dir', dir, ...args], { stdio: 'pipe' }).toString();
+// The repositories the registry makes, built here the same way, so that a test
+// can start from a sound one and poison exactly one thing.
+const commitEntryDir = (cache, url, commit) => join(cache, 'models', `${sha256(url).slice(0, 24)}-${commit}`);
+function commitRepo(url, commit, dir) {
+  mkdirSync(dirname(dir), { recursive: true });
+  execFileSync('git', ['init', '-q', '--bare', '--template=', dir], { stdio: 'pipe' });
+  rawGit(dir, 'fetch', '-q', '--depth', '1', '--end-of-options', url, commit);
+}
+function historyRepo(url, branch, dir) {
+  mkdirSync(dirname(dir), { recursive: true });
+  execFileSync('git', ['clone', '-q', '--bare', '--template=', '--filter=tree:0', '--single-branch', '--branch', branch, '--end-of-options', url, dir], { stdio: 'pipe' });
+}
+const refsOf = (dir, pattern) => rawGit(dir, 'for-each-ref', '--format=%(refname)', pattern).trim();
+
+test('a checkout that tracks a .cache is refused before anything is fetched', () => {
+  const source = modelOrigin('tracked-cache');
+  const dir = registry({ fixture: fixtureRecord(source) });
+  assert.deepEqual(trackedCacheProblems(dir), [], 'a directory that is not a checkout tracks nothing');
+  gitIn(dir, 'init', '-q');
+  assert.deepEqual(check(dir).problems, [], 'positive control: the same registry passes without a tracked cache');
+  mkdirSync(join(dir, '.cache', 'models'), { recursive: true });
+  writeFileSync(join(dir, '.cache', 'models', 'planted'), 'planted');
+  assert.deepEqual(trackedCacheProblems(dir), [], 'an untracked .cache is not a problem, and is never read');
+  gitIn(dir, 'add', '-f', '.cache');
+  const cache = freshCache();
+  const { problems } = checkRegistry({ ...options(dir), cacheDir: cache });
+  assert.equal(problems.length, 1);
+  expectProblem(problems, /^\.cache is tracked in this checkout \(\.cache\/models\/planted\); the registry keeps its caches outside the checkout and never reads one from it/);
+  assert.equal(existsSync(cache), false, 'nothing was fetched');
+  assert.equal(loadModels({ ...options(dir), cacheDir: cache }).entries.length, 0);
+  gitIn(dir, 'rm', '-rq', '--cached', '.cache');
+  assert.deepEqual(check(dir).problems, []);
+});
+
+test('the cache directory is per-user, private and never a link', () => {
+  const home = join(scratch, `home-${count++}`);
+  mkdirSync(home);
+  const dir = defaultCacheDir({ env: {}, home });
+  assert.equal(dir, join(home, '.cache', 'modelspec-registry'));
+  assert.equal(statSync(dir).mode & 0o777, 0o700);
+  assert.equal(defaultCacheDir({ env: {}, home }), dir, 'a second call reuses it');
+  const xdg = join(scratch, `xdg-${count++}`);
+  assert.equal(defaultCacheDir({ env: { XDG_CACHE_HOME: xdg }, home }), join(xdg, 'modelspec-registry'));
+  assert.equal(defaultCacheDir({ env: { XDG_CACHE_HOME: 'relative/path' }, home }), dir, 'a relative XDG_CACHE_HOME is ignored');
+  for (const mode of [0o770, 0o707, 0o777, 0o720]) {
+    chmodSync(dir, mode);
+    assert.throws(() => defaultCacheDir({ env: {}, home }), /is writable by others; the cache must be private/, mode.toString(8));
+  }
+  chmodSync(dir, 0o700);
+  assert.equal(defaultCacheDir({ env: {}, home }), dir);
+  assert.throws(() => defaultCacheDir({ env: {}, home, uid: process.getuid() + 1 }), /is owned by another user; the cache must be yours/);
+  // A symbolic link in its place, to a directory that is otherwise fine.
+  const base = join(scratch, `linked-${count++}`);
+  const target = join(scratch, `target-${count++}`);
+  mkdirSync(base);
+  mkdirSync(target, { mode: 0o700 });
+  symlinkSync(target, join(base, 'modelspec-registry'));
+  assert.throws(() => defaultCacheDir({ env: { XDG_CACHE_HOME: base }, home }), /is not a directory; the cache must be a real per-user directory/);
+  // A file in its place.
+  const filed = join(scratch, `filed-${count++}`);
+  mkdirSync(filed);
+  writeFileSync(join(filed, 'modelspec-registry'), 'x');
+  assert.throws(() => defaultCacheDir({ env: { XDG_CACHE_HOME: filed }, home }));
+});
+
+test('a cached repository is trusted only when it is one this module made', () => {
+  const source = modelOrigin('sound');
+  const url = origins.get(source.repository);
+  const cache = freshCache();
+  const history = historyPath(join(cache, 'history'), url, 'main');
+  const commitDir = commitEntryDir(cache, url, source.commit);
+  historyRepo(url, 'main', history);
+  commitRepo(url, source.commit, commitDir);
+  assert.equal(cacheRepoSound(history, { url }), true, 'positive control: a history clone made the way the registry makes it');
+  assert.equal(cacheRepoSound(commitDir), true, 'positive control: a commit repository made the way the registry makes it');
+  assert.equal(cacheRepoSound(join(cache, 'nothing-here')), false);
+
+  const copy = (dir) => { const to = join(scratch, `copy-${count++}`); cpSync(dir, to, { recursive: true }); return to; };
+  const poisoned = {
+    'an alternates file': (d) => { mkdirSync(join(d, 'objects', 'info'), { recursive: true }); writeFileSync(join(d, 'objects', 'info', 'alternates'), '/somewhere/else/objects\n'); },
+    'a commondir file': (d) => writeFileSync(join(d, 'commondir'), '../other\n'),
+    'a hook': (d) => { mkdirSync(join(d, 'hooks'), { recursive: true }); writeFileSync(join(d, 'hooks', 'reference-transaction'), '#!/bin/sh\ntrue\n'); chmodSync(join(d, 'hooks', 'reference-transaction'), 0o755); },
+    'core.hooksPath': (d) => rawGit(d, 'config', 'core.hooksPath', '/planted'),
+    'core.fsmonitor': (d) => rawGit(d, 'config', 'core.fsmonitor', '/planted/monitor'),
+    'core.sshCommand': (d) => rawGit(d, 'config', 'core.sshCommand', '/planted/ssh'),
+    'an insteadOf rewrite': (d) => rawGit(d, 'config', 'url.file:///planted.insteadOf', 'https://example.test/'),
+    'an include': (d) => rawGit(d, 'config', 'include.path', '/planted/config'),
+    'an alias': (d) => rawGit(d, 'config', 'alias.fetch', '!touch /planted'),
+    'a credential helper': (d) => rawGit(d, 'config', 'credential.helper', '!planted'),
+    'a protocol setting': (d) => rawGit(d, 'config', 'protocol.allow', 'always'),
+    'a replace ref': (d) => { rawGit(d, 'update-ref', `refs/replace/${source.commit}`, source.commit); },
+    'a corrupt object': (d) => { mkdirSync(join(d, 'objects', 'ab'), { recursive: true }); writeFileSync(join(d, 'objects', 'ab', 'c'.repeat(38)), 'not a git object'); },
+    'no HEAD': (d) => rmSync(join(d, 'HEAD')),
+  };
+  for (const [what, change] of Object.entries(poisoned)) {
+    const h = copy(history);
+    change(h);
+    assert.equal(cacheRepoSound(h, { url }), false, `a history clone with ${what}`);
+    const c = copy(commitDir);
+    change(c);
+    assert.equal(cacheRepoSound(c), false, `a commit repository with ${what}`);
+  }
+  assert.equal(cacheRepoSound(history, { url: 'file:///another/url' }), false, 'a history clone whose remote is another URL');
+  assert.equal(cacheRepoSound(history), false, 'a history clone is not a commit repository (it has a remote)');
+  const noRemote = copy(commitDir);
+  rawGit(noRemote, 'config', 'remote.origin.url', url);
+  assert.equal(cacheRepoSound(noRemote), false, 'a commit repository never has a remote');
+});
+
+test('a forged model in the cache is not read: replace refs are discarded and ignored (variant 1)', () => {
+  const source = modelOrigin('forged');
+  const url = origins.get(source.repository);
+  const cache = freshCache();
+  const entry = commitEntryDir(cache, url, source.commit);
+  commitRepo(url, source.commit, entry);
+  assert.equal(cacheRepoSound(entry), true, 'positive control: without the forgery the cache entry is reused');
+  const jsonBlob = rawGit(entry, 'rev-parse', `${source.commit}:model/fixture.modelspec.json`).trim();
+  const real = rawGit(entry, 'cat-file', 'blob', jsonBlob);
+  const forged = real.replaceAll('"Name"', '"Kame"');
+  const forgedId = execFileSync('git', ['--git-dir', entry, 'hash-object', '-w', '--stdin'], { input: forged, stdio: 'pipe' }).toString().trim();
+  rawGit(entry, 'replace', jsonBlob, forgedId);
+  assert.match(rawGit(entry, 'cat-file', 'blob', jsonBlob), /"Kame"/, 'positive control: plain git reads the forged file for the real object id');
+  assert.equal(git(['--git-dir', entry, 'cat-file', 'blob', jsonBlob]), real, 'the registry\'s git ignores replace refs');
+  assert.equal(cacheRepoSound(entry), false);
+  const dir = registry({ fixture: fixtureRecord(source) });
+  const { problems, entries } = loadModels({ ...options(dir), cacheDir: cache });
+  assert.deepEqual(problems, []);
+  assert.deepEqual(entries[0].entities[0].properties.map((property) => property.name), ['ArtistId', 'Name']);
+  assert.equal(refsOf(entry, 'refs/replace'), '', 'the poisoned repository was thrown away and fetched again');
+  assert.deepEqual(checkRegistry({ ...options(dir), cacheDir: cache }).problems, []);
+});
+
+test('a planted hook in the cache never runs (variant 2)', () => {
+  const marker = join(scratch, `hook-ran-${count++}`);
+  const source = modelOrigin('hooked');
+  const url = origins.get(source.repository);
+  const cache = freshCache();
+  const history = historyPath(join(cache, 'history'), url, 'main');
+  historyRepo(url, 'main', history);
+  assert.equal(cacheRepoSound(history, { url }), true);
+  mkdirSync(join(history, 'hooks'));
+  writeFileSync(join(history, 'hooks', 'reference-transaction'), `#!/bin/sh\ntouch '${marker}'\n`);
+  chmodSync(join(history, 'hooks', 'reference-transaction'), 0o755);
+  rawGit(history, 'update-ref', 'refs/heads/probe', source.commit);
+  assert.equal(existsSync(marker), true, 'positive control: plain git runs the planted hook');
+  rmSync(marker);
+  // Whatever got it there, the registry's git does not run it ...
+  git(['--git-dir', history, 'update-ref', 'refs/heads/probe2', source.commit]);
+  git(['--git-dir', history, 'fetch', '-q', '--force', 'origin', '+refs/heads/main:refs/heads/main']);
+  assert.equal(existsSync(marker), false, 'hooks never run through the registry\'s git');
+  // ... and the poisoned repository is not used at all: it is replaced.
+  const dir = registry({ fixture: fixtureRecord(source) });
+  rmSync(marker, { force: true });
+  assert.deepEqual(loadModels({ ...options(dir), cacheDir: cache }).problems, []);
+  assert.equal(existsSync(marker), false);
+  assert.equal(existsSync(join(history, 'hooks', 'reference-transaction')), false, 'thrown away and cloned again');
+  assert.equal(cacheRepoSound(history, { url }), true);
+});
+
+test('a history clone that points at another repository is not used (variant 2, redirected)', () => {
+  const source = modelOrigin('redirect-a');
+  const fork = modelOrigin('redirect-b', { files: { 'extra.txt': 'only the fork has this' } });
+  assert.notEqual(source.commit, fork.commit);
+  const url = origins.get(source.repository);
+  const forkUrl = origins.get(fork.repository);
+  const prepare = () => {
+    const histDir = join(freshCache(), 'history');
+    const clone = historyPath(histDir, url, 'main');
+    historyRepo(url, 'main', clone);
+    rawGit(clone, 'config', `url.${forkUrl}.insteadOf`, url);
+    return { histDir, clone };
+  };
+  const control = prepare();
+  rawGit(control.clone, 'fetch', '-q', '--force', 'origin', '+refs/heads/main:refs/heads/main');
+  assert.equal(refsOf(control.clone, 'refs/heads/main'), 'refs/heads/main');
+  assert.equal(rawGit(control.clone, 'rev-parse', 'refs/heads/main').trim(), fork.commit, 'positive control: plain git follows the rewrite to the fork');
+  const poisoned = prepare();
+  assert.equal(onBranch(url, 'main', fork.commit, poisoned.histDir, new Set()), false, 'the fork\'s commit is not in the history of the registered repository');
+  assert.equal(onBranch(url, 'main', source.commit, poisoned.histDir, new Set()), true);
+  assert.equal(onBranch(forkUrl, 'main', fork.commit, join(freshCache(), 'history'), new Set()), true, 'positive control: it is in the fork\'s own history');
+});
+
+test('a history clone survives the publisher\'s branch moving, and is made again when refreshing it fails', () => {
+  const source = modelOrigin('moves');
+  const url = origins.get(source.repository);
+  const histDir = join(freshCache(), 'history');
+  assert.equal(onBranch(url, 'main', source.commit, histDir, new Set()), true);
+  const clone = historyPath(histDir, url, 'main');
+  assert.match(readFileSync(join(clone, 'config'), 'utf8'), /partialclonefilter = tree:0/, 'it is a partial clone, as GitHub\'s are');
+  const advance = (name) => {
+    mkdirSync(join(source.dir, name), { recursive: true });
+    writeFileSync(join(source.dir, name, 'new.txt'), name);
+    gitIn(source.dir, 'add', '-A');
+    gitIn(source.dir, '-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-q', '-m', name);
+    return gitIn(source.dir, 'rev-parse', 'HEAD');
+  };
+  // The branch moves, with new trees the partial clone has never had.
+  const second = advance('later-1');
+  assert.equal(onBranch(url, 'main', second, histDir, new Set()), true);
+  assert.equal(onBranch(url, 'main', source.commit, histDir, new Set()), true, 'the older commit is still in the history');
+  const third = advance('later-2');
+  assert.equal(onBranch(url, 'main', third, histDir, new Set()), true);
+  assert.equal(rawGit(clone, 'rev-parse', 'refs/heads/main').trim(), third);
+  assert.equal(onBranch(url, 'main', 'f'.repeat(40), histDir, new Set()), false);
+  // A refresh that cannot work (a ref that is in the way of the branch): the clone is thrown away and made again.
+  rawGit(clone, 'update-ref', '-d', 'refs/heads/main');
+  rawGit(clone, 'update-ref', 'refs/heads/main/in-the-way', third);
+  assert.throws(() => rawGit(clone, 'fetch', '-q', '--force', 'origin', '+refs/heads/main:refs/heads/main'), 'positive control: this refresh fails');
+  assert.equal(onBranch(url, 'main', third, histDir, new Set()), true);
+  assert.equal(refsOf(clone, 'refs/heads/main/in-the-way'), '', 'the clone was made again');
+  assert.equal(rawGit(clone, 'rev-parse', 'refs/heads/main').trim(), third);
+  // And a clone that cannot be made at all is reported, naming the repository.
+  assert.throws(() => onBranch('file:///no/such/repository', 'main', third, histDir, new Set()), /cannot read the history of main in file:\/\/\/no\/such\/repository/);
+});
+
+// ---- the linter: only bytes that match the pinned SHA-256 are run -----------
+
+function archiveOf(script) {
+  const dir = mkdtempSync(join(scratch, 'archive-'));
+  writeFileSync(join(dir, 'specscore'), script);
+  chmodSync(join(dir, 'specscore'), 0o755);
+  const file = join(scratch, `archive-${count++}.tar.gz`);
+  execFileSync('tar', ['-czf', file, '-C', dir, 'specscore']);
+  return readFileSync(file);
+}
+
+test('the pinned linter is verified before every run, and a binary lying in the cache is never run (variant 3)', async () => {
+  const marker = join(scratch, `linter-ran-${count++}`);
+  const planted = `#!/bin/sh\ntouch '${marker}'\necho planted\n`;
+  const good = archiveOf('#!/bin/sh\necho real\n');
+  const evil = archiveOf(planted);
+  const build = { asset: 'test_amd64', sha: sha256(good) };
+  const table = { 'test/x64': build };
+  const archiveName = 'specscore_0.54.2_test_amd64.tar.gz';
+  let downloads = 0;
+  const download = (bytes) => async (name) => { downloads++; assert.equal(name, archiveName); return bytes; };
+  const run = async (cache, bytes = good) => {
+    const { path, dispose } = await specscoreBinary({ cacheDir: cache, env: {}, platform: 'test/x64', table, download: download(bytes) });
+    try { return execFileSync(path).toString(); } finally { dispose(); }
+  };
+
+  // Planted: binaries and archives already lying in the cache, in every layout.
+  const cache = freshCache();
+  mkdirSync(join(cache, 'specscore-0.54.2-test_amd64'), { recursive: true });
+  writeFileSync(join(cache, 'specscore-0.54.2-test_amd64', 'specscore'), planted, { mode: 0o755 });
+  writeFileSync(join(cache, 'specscore'), planted, { mode: 0o755 });
+  assert.equal(execFileSync(join(cache, 'specscore')).toString(), 'planted\n');
+  rmSync(marker);
+  assert.equal(await run(cache), 'real\n');
+  assert.equal(existsSync(marker), false, 'the planted binary was not run');
+  assert.equal(downloads, 1);
+
+  // A correct cached archive is used without downloading (positive control) ...
+  assert.equal(await run(cache), 'real\n');
+  assert.equal(downloads, 1);
+  // ... and is verified again before every run: replaced between two runs, it is discarded.
+  writeFileSync(join(cache, archiveName), evil);
+  assert.equal(await run(cache), 'real\n');
+  assert.equal(existsSync(marker), false, 'a tampered archive was not run');
+  assert.equal(downloads, 2);
+  assert.deepEqual(readFileSync(join(cache, archiveName)), good, 'and replaced by the verified download');
+  // Nothing is left unpacked afterwards.
+  assert.deepEqual(readdirSync(cache).filter((name) => name.startsWith('.bin-')), []);
+
+  // A download that is not the pinned release is refused, and not cached.
+  const empty = freshCache();
+  await assert.rejects(() => run(empty, evil), /SHA-256 is [0-9a-f]{64}, expected [0-9a-f]{64}/);
+  assert.equal(existsSync(marker), false);
+  assert.equal(existsSync(join(empty, archiveName)), false);
+  await assert.rejects(() => verifiedArchive({ cacheDir: empty, build, download: async () => { throw new Error('offline'); } }), /offline/);
+
+  // SPECSCORE names a binary the person running the check chose; a platform with no pin is an error.
+  assert.equal((await specscoreBinary({ cacheDir: empty, env: { SPECSCORE: '/usr/bin/true' } })).path, '/usr/bin/true');
+  await assert.rejects(() => specscoreBinary({ cacheDir: empty, env: {}, platform: 'plan9/mips', table }), /no pinned specscore build for plan9\/mips/);
+});
+
+// ---- own properties: names like the members of Object.prototype ------------
+
+const prototypeHcl = `entity "valueOf" {
+  key = ["constructor"]
+
+  property "constructor" {
+    type     = "int"
+    required = true
+  }
+
+  property "toString" {
+    type = "string"
+  }
+
+  property "__proto__" {
+    type = "string"
+  }
+
+  property "hasOwnProperty" {
+    entity = "valueOf"
+  }
+}
+`;
+
+test('names like constructor, toString and __proto__ are ordinary names', () => {
+  const source = modelOrigin('prototype-names', { hcl: prototypeHcl });
+  const dir = registry({ fixture: fixtureRecord(source) });
+  assert.deepEqual(check(dir).problems, []);
+  const { entries } = loadModels(options(dir));
+  assert.deepEqual(entries[0].entities[0], { name: 'valueOf', key: ['constructor'], use: [], properties: [
+    { name: 'constructor', type: 'int', required: true, key: true },
+    { name: 'toString', type: 'string', required: false, key: false },
+    { name: '__proto__', type: 'string', required: false, key: false },
+    { name: 'hasOwnProperty', type: 'reference', references: 'valueOf', required: false, key: false },
+  ] });
+  // A key that names a property that is not there is still caught, whatever it is called.
+  for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+    const hcl = `entity "T" {\n  key = ["${name}"]\n\n  property "id" {\n    type = "int"\n  }\n}\n`;
+    expectProblem(problemsOf(modelOrigin(`key-${name.toLowerCase().replaceAll('_', '')}`, { hcl })), new RegExp(`entity T key ${name} is not a property`));
+  }
+  // A real duplicate is a duplicate, and a name that only looks like one is not.
+  expectProblem(problemsOf(modelOrigin('duplicate-constructor', { hcl: prototypeHcl.replace('"toString"', '"constructor"'), json: jsonFor('duplicate-constructor') })), /duplicate property "constructor" in entity "valueOf"/);
+});
+
+test('a JSON AST that repeats a name is refused', () => {
+  const text = serializeModel(jsonFor('dup-json'));
+  const repeats = {
+    'an entity': text.replace('"entities": {', '"entities": {\n    "Artist": { "key": ["ArtistId"], "properties": { "ArtistId": { "type": "int", "required": true } } },'),
+    'a property': text.replace('"Name": {', '"Name": { "type": "int" },\n        "Name": {'),
+    'a top-level name': text.replace('"modelspec": "1.0-draft",', '"modelspec": "0.1",\n  "modelspec": "1.0-draft",'),
+    'an attribute': text.replace('"required": true', '"required": false, "required": true'),
+  };
+  const expected = { 'an entity': /duplicate name "Artist" in entities/, 'a property': /duplicate name "Name" in entities\.Artist\.properties/, 'a top-level name': /duplicate name "modelspec" in the top-level object/, 'an attribute': /duplicate name "required" in entities\.Artist\.properties\.ArtistId/ };
+  let n = 0;
+  for (const [what, json] of Object.entries(repeats)) {
+    assert.notEqual(json, text, what);
+    assert.doesNotThrow(() => JSON.parse(json), 'plain JSON.parse accepts it, which is the problem');
+    const problems = problemsOf(modelOrigin(`dup-json-${n++}`, { json }));
+    expectProblem(problems, new RegExp(`fixture\\.modelspec\\.json is not JSON, or repeats a name: ${expected[what].source}`));
+  }
+  assert.deepEqual(problemsOf(modelOrigin('dup-json-none', { json: serializeModel(jsonFor('dup-json-none')) })), []);
+});
+
+test('parseJson is JSON.parse that refuses repeated names', () => {
+  const same = ['{}', '[]', '0', '-1.5e3', 'true', 'null', '"a\\u0041\\n"', ' { "a" : [ 1 , { "b" : null } ] , "c" : "d" } ', '{"constructor":1,"__proto__":2,"toString":3}', '[[[]]]'];
+  for (const text of same) assert.deepEqual(JSON.parse(JSON.stringify(parseJson(text))), JSON.parse(JSON.stringify(JSON.parse(text))), text);
+  const parsed = parseJson('{"__proto__":{"polluted":true},"constructor":1}');
+  assert.equal(Object.getPrototypeOf(parsed), null);
+  assert.equal(Object.hasOwn(parsed, '__proto__'), true);
+  assert.equal({}.polluted, undefined);
+  assert.throws(() => parseJson('{"a":1,"a":2}'), /duplicate name "a" in the top-level object/);
+  assert.throws(() => parseJson('{"a":{"b":[{"c":1,"c":2}]}}'), /duplicate name "c" in a\.b\[0\]/);
+  assert.throws(() => parseJson('{"a":1,"\\u0061":2}'), /duplicate name "a"/, 'an escaped spelling of the same name');
+  for (const bad of ['', '{', '{"a"}', '{"a":}', '{"a":1,}', '[1,]', '[1 2]', '{a:1}', '"x', '01', '1 2', '{"a":1} x', 'nul', '+1', "{'a':1}"]) assert.throws(() => parseJson(bad), undefined, bad);
+  assert.throws(() => parseJson(`${'['.repeat(200)}${']'.repeat(200)}`), /nesting too deep/);
+});
+
+test('property order is the model\'s own, even for names that look like integers', () => {
+  const hcl = `entity "T" {\n  key = ["b"]\n\n${['b', '2', '1', 'a'].map((name) => `  property "${name}" {\n    type = "int"\n  }\n`).join('\n')}}\n`;
+  const source = modelOrigin('integer-names', { hcl });
+  const dir = registry({ fixture: fixtureRecord(source) });
+  assert.deepEqual(check(dir).problems, []);
+  assert.deepEqual(loadModels(options(dir)).entries[0].entities[0].properties.map((property) => property.name), ['b', '2', '1', 'a']);
+});
+
+test('the index lists the components an entity uses and the fields they add', () => {
+  const hcl = `component "Audit" {
+  field "createdAt" {
+    type     = "datetime"
+    required = true
+  }
+
+  field "createdBy" {
+    entity = "T"
+  }
+}
+
+entity "T" {
+  key = ["id"]
+  use = ["Audit"]
+
+  property "id" {
+    type = "int"
+  }
+
+  property "audit2" {
+    component = "Audit"
+  }
+}
+`;
+  const source = modelOrigin('components', { hcl });
+  const dir = registry({ fixture: fixtureRecord(source) });
+  assert.deepEqual(check(dir).problems, []);
+  const [entry] = loadModels(options(dir)).entries;
+  assert.deepEqual(entry.entities, [{ name: 'T', key: ['id'], use: ['Audit'], properties: [{ name: 'id', type: 'int', required: false, key: true }, { name: 'audit2', type: 'component', component: 'Audit', required: false, key: false }] }]);
+  assert.deepEqual(entry.components, [{ name: 'Audit', fields: [{ name: 'createdAt', type: 'datetime', required: true }, { name: 'createdBy', type: 'reference', references: 'T', required: false }] }]);
+});
+
+test('an index block in an entity is refused, in grammatical English', () => {
+  const hcl = fixtureHcl.replace('property "Name" {', 'index "by_name" {\n    properties = ["Name"]\n  }\n\n  property "Name" {');
+  expectProblem(problemsOf(modelOrigin('index-block', { hcl, json: jsonFor('index-block') })), /model\/fixture\.modelspec\.hcl: line \d+: entity "Artist" cannot contain an index block \(this converter supports property\)/);
+  expectProblem(problemsOf(modelOrigin('projection-block', { hcl: fixtureHcl.replace('property "Name" {', 'projection "p" {\n  }\n\n  property "Name" {'), json: jsonFor('projection-block') })), /cannot contain a projection block/);
 });

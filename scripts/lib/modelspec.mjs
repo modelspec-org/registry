@@ -110,13 +110,13 @@ export function parseHcl(text) {
     throw new Error(`line ${token.line}: ${token.value ?? token.kind} is not a literal (expressions are not ModelSpec v0)`);
   };
   const body = (closing) => {
-    const attributes = {};
+    const attributes = Object.create(null);
     const blocks = [];
     while (peek() && peek().kind !== closing) {
       const name = expect('ident');
       if (peek()?.kind === '=') {
         p++;
-        if (name.value in attributes) throw new Error(`line ${name.line}: duplicate attribute ${name.value}`);
+        if (Object.hasOwn(attributes, name.value)) throw new Error(`line ${name.line}: duplicate attribute ${name.value}`);
         attributes[name.value] = value();
       } else {
         const label = expect('string');
@@ -134,12 +134,12 @@ export function parseHcl(text) {
 }
 
 function members(block, memberType, allowed) {
-  const out = {};
+  const out = Object.create(null);
   for (const child of block.blocks) {
-    if (!allowed.includes(child.type)) throw new Error(`line ${child.line}: ${block.type} "${block.name}" cannot contain a ${child.type} block (this converter supports ${allowed.join(', ')})`);
+    if (!allowed.includes(child.type)) throw new Error(`line ${child.line}: ${block.type} "${block.name}" cannot contain ${/^[aeiou]/.test(child.type) ? 'an' : 'a'} ${child.type} block (this converter supports ${allowed.join(', ')})`);
     if (child.type !== memberType) continue;
     if (child.blocks.length > 0) throw new Error(`line ${child.line}: ${child.type} "${child.name}" cannot contain blocks`);
-    if (child.name in out) throw new Error(`line ${child.line}: duplicate ${child.type} "${child.name}" in ${block.type} "${block.name}"`);
+    if (Object.hasOwn(out, child.name)) throw new Error(`line ${child.line}: duplicate ${child.type} "${child.name}" in ${block.type} "${block.name}"`);
     out[child.name] = { ...child.attributes };
   }
   return out;
@@ -150,8 +150,8 @@ function members(block, memberType, allowed) {
 export function toModelspecJson(document, module) {
   const json = { modelspec: modelspecVersion, module };
   const add = (kind, name, value, line) => {
-    json[kind] ??= {};
-    if (name in json[kind]) throw new Error(`line ${line}: duplicate ${{ entities: 'entity', components: 'component', enums: 'enum' }[kind]} "${name}"`);
+    json[kind] ??= Object.create(null);
+    if (Object.hasOwn(json[kind], name)) throw new Error(`line ${line}: duplicate ${{ entities: 'entity', components: 'component', enums: 'enum' }[kind]} "${name}"`);
     json[kind][name] = value;
   };
   for (const block of document.blocks) {
@@ -229,13 +229,13 @@ export function validateModel(json) {
     else if (new Set(values).size !== values.length) problems.push(`enum ${name} has duplicate values`);
   }
   const checkMember = (where, member) => {
-    const kinds = referenceAttributes.filter((attribute) => attribute in member && attribute !== 'enum');
+    const kinds = referenceAttributes.filter((attribute) => Object.hasOwn(member, attribute) && attribute !== 'enum');
     if (kinds.length !== 1) problems.push(`${where} must have exactly one of type, entity, component`);
-    if ('type' in member && !primitiveTypes.includes(member.type)) problems.push(`${where} has unsupported type ${JSON.stringify(member.type)}`);
-    if ('entity' in member && !resolves(member.entity, 'entities')) problems.push(unresolved(where, 'entity', member.entity));
-    if ('component' in member && !resolves(member.component, 'components')) problems.push(unresolved(where, 'component', member.component));
-    if ('enum' in member && typeof member.enum === 'string' && !resolves(member.enum, 'enums')) problems.push(unresolved(where, 'enum', member.enum));
-    if ('enum' in member && typeof member.enum !== 'string' && !(Array.isArray(member.enum) && member.enum.length > 0)) problems.push(`${where} enum must name an enum or list values`);
+    if (Object.hasOwn(member, 'type') && !primitiveTypes.includes(member.type)) problems.push(`${where} has unsupported type ${JSON.stringify(member.type)}`);
+    if (Object.hasOwn(member, 'entity') && !resolves(member.entity, 'entities')) problems.push(unresolved(where, 'entity', member.entity));
+    if (Object.hasOwn(member, 'component') && !resolves(member.component, 'components')) problems.push(unresolved(where, 'component', member.component));
+    if (Object.hasOwn(member, 'enum') && typeof member.enum === 'string' && !resolves(member.enum, 'enums')) problems.push(unresolved(where, 'enum', member.enum));
+    if (Object.hasOwn(member, 'enum') && typeof member.enum !== 'string' && !(Array.isArray(member.enum) && member.enum.length > 0)) problems.push(`${where} enum must name an enum or list values`);
     for (const [attribute, value] of Object.entries(member)) {
       if (referenceAttributes.includes(attribute)) continue;
       const expected = constraintTypes[attribute];
@@ -249,7 +249,7 @@ export function validateModel(json) {
   }
   for (const [name, entity] of Object.entries(json.entities ?? {})) {
     if (!Array.isArray(entity.key) || entity.key.length === 0) problems.push(`entity ${name} needs a key`);
-    for (const keyProperty of entity.key ?? []) if (!(keyProperty in (entity.properties ?? {}))) problems.push(`entity ${name} key ${keyProperty} is not a property`);
+    for (const keyProperty of entity.key ?? []) if (!Object.hasOwn(entity.properties ?? {}, keyProperty)) problems.push(`entity ${name} key ${keyProperty} is not a property`);
     for (const used of entity.use ?? []) if (!resolves(used, 'components')) problems.push(unresolved(`entity ${name}`, 'component', used));
     for (const [property, member] of Object.entries(entity.properties ?? {})) checkMember(`${name}.${property}`, member);
   }
@@ -269,8 +269,8 @@ export function astDifferences(fromHcl, published) {
     if (isObject(a) && isObject(b)) {
       for (const name of [...new Set([...Object.keys(a), ...Object.keys(b)])].sort()) {
         const where = path ? `${path}.${name}` : name;
-        if (!(name in a)) differences.push(`${where} is in the JSON AST but not in the HCL source`);
-        else if (!(name in b)) differences.push(`${where} is in the HCL source but not in the JSON AST`);
+        if (!Object.hasOwn(a, name)) differences.push(`${where} is in the JSON AST but not in the HCL source`);
+        else if (!Object.hasOwn(b, name)) differences.push(`${where} is in the HCL source but not in the JSON AST`);
         else walk(a[name], b[name], where);
       }
     } else if (JSON.stringify(a) !== JSON.stringify(b)) differences.push(`${path} is ${JSON.stringify(a)} in the HCL source but ${JSON.stringify(b)} in the JSON AST`);
@@ -279,25 +279,104 @@ export function astDifferences(fromHcl, published) {
   return differences;
 }
 
-// The entities of a validated JSON AST as the registry's index lists them: for
-// each entity its key and its properties, each with its name, `type` (a
+// A property or field of the HCL source as the index lists it: `type` (a
 // reference has type "reference" and `references` names the entity it points
-// at; an embedded component has type "component" and `component`), whether it
-// is required, and whether it is part of the entity's key. Declaration order is
-// kept.
-export function describeEntities(json) {
-  return Object.entries(json.entities ?? {}).map(([name, entity]) => {
-    const key = entity.key ?? [];
-    return {
-      name,
-      key: [...key],
-      properties: Object.entries(entity.properties ?? {}).map(([property, member]) => {
-        let shape;
-        if (typeof member.type === 'string') shape = { type: member.type };
-        else if (typeof member.entity === 'string') shape = { type: 'reference', references: member.entity };
-        else shape = { type: 'component', component: member.component };
-        return { name: property, ...shape, required: member.required === true, key: key.includes(property) };
-      }),
-    };
-  });
+// at; an embedded component has type "component" and `component` names it),
+// whether it is required, and, for an entity property, whether it is part of
+// the entity's key.
+function memberEntry(block, key) {
+  const { attributes } = block;
+  let shape;
+  if (typeof attributes.type === 'string') shape = { type: attributes.type };
+  else if (typeof attributes.entity === 'string') shape = { type: 'reference', references: attributes.entity };
+  else shape = { type: 'component', component: attributes.component };
+  return { name: block.name, ...shape, required: attributes.required === true, ...(key ? { key: key.includes(block.name) } : {}) };
+}
+
+// The entities and components of a model for the index, read from the parsed
+// HCL source in declaration order, as arrays (a JSON object would list
+// integer-like names first). The registry has already checked that the JSON AST
+// is what this source says, so this is the model. Each entity has its `key`,
+// the components it embeds with `use`, and its `properties`; each component has
+// its `fields`. A property's `type` is a primitive, "reference" (with
+// `references`) or "component" (with `component`).
+export function describeModel(document) {
+  const ofType = (type) => document.blocks.filter((block) => block.type === type);
+  return {
+    entities: ofType('entity').map((block) => {
+      const key = block.attributes.key ?? [];
+      return { name: block.name, key: [...key], use: [...(block.attributes.use ?? [])], properties: block.blocks.filter((child) => child.type === 'property').map((child) => memberEntry(child, key)) };
+    }),
+    components: ofType('component').map((block) => ({ name: block.name, fields: block.blocks.filter((child) => child.type === 'field').map((child) => memberEntry(child)) })),
+  };
+}
+
+// ---- JSON that refuses duplicate names ---------------------------------------
+
+const maxJsonDepth = 100;
+
+// Parses JSON like JSON.parse, but throws on a name that occurs twice in one
+// object (JSON.parse keeps the last, so a duplicated entity or property would
+// pass unseen; the ModelSpec specification requires unique names). Objects have
+// no prototype, so any name, `constructor` and `__proto__` included, is just a
+// name.
+export function parseJson(text) {
+  let i = 0;
+  const fail = (message) => { throw new Error(`${message} at position ${i}`); };
+  const space = () => { while (i < text.length && ' \t\n\r'.includes(text[i])) i++; };
+  const string = () => {
+    const start = i;
+    i++;
+    while (i < text.length && text[i] !== '"') i += text[i] === '\\' ? 2 : 1;
+    if (i >= text.length) fail('unterminated string');
+    i++;
+    return JSON.parse(text.slice(start, i));
+  };
+  const value = (depth, path) => {
+    if (depth > maxJsonDepth) fail('nesting too deep');
+    space();
+    const c = text[i];
+    if (c === '{') {
+      i++;
+      const object = Object.create(null);
+      space();
+      if (text[i] === '}') { i++; return object; }
+      for (;;) {
+        space();
+        if (text[i] !== '"') fail('expected a name');
+        const name = string();
+        if (Object.hasOwn(object, name)) throw new Error(`duplicate name ${JSON.stringify(name)} in ${path || 'the top-level object'}`);
+        space();
+        if (text[i] !== ':') fail('expected ":"');
+        i++;
+        object[name] = value(depth + 1, path ? `${path}.${name}` : name);
+        space();
+        if (text[i] === ',') { i++; continue; }
+        if (text[i] === '}') { i++; return object; }
+        fail('expected "," or "}"');
+      }
+    }
+    if (c === '[') {
+      i++;
+      const list = [];
+      space();
+      if (text[i] === ']') { i++; return list; }
+      for (;;) {
+        list.push(value(depth + 1, `${path}[${list.length}]`));
+        space();
+        if (text[i] === ',') { i++; continue; }
+        if (text[i] === ']') { i++; return list; }
+        fail('expected "," or "]"');
+      }
+    }
+    if (c === '"') return string();
+    const literal = /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(text.slice(i, i + 400));
+    if (!literal) fail('unexpected character');
+    i += literal[0].length;
+    return JSON.parse(literal[0]);
+  };
+  const result = value(0, '');
+  space();
+  if (i < text.length) fail('unexpected text after the value');
+  return result;
 }

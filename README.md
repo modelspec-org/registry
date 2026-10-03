@@ -195,11 +195,13 @@ model in one file, format `modelspec-registry/draft-1`:
     "entities": [{
       "name": "Album",
       "key": ["AlbumId"],
+      "use": [],
       "properties": [
         { "name": "AlbumId", "type": "int", "required": true, "key": true },
         { "name": "ArtistId", "type": "reference", "references": "Artist", "required": true, "key": false }
       ]
-    }]
+    }],
+    "components": []
   }]
 }
 ```
@@ -209,9 +211,15 @@ model in one file, format `modelspec-registry/draft-1`:
   embedded component (`type` is `component` and `component` names it).
 - `required` and `key` say whether the property is required and whether it is
   part of the entity's key.
-- Models are sorted by `id`; entities and properties keep the order of the
-  model. The file is the same bytes every time it is built from the same
-  records and commits.
+- `use` lists the components an entity embeds, and `components` lists each
+  component the model declares with its `fields` (each with `name`, `type`,
+  `references` or `component`, and `required`), so a page can show the fields
+  an entity gets from a component. Chinook has none.
+- Models are sorted by `id`; entities, properties, components and fields keep
+  the order of the HCL source, also when a name looks like an integer (the index
+  is built from the source as lists, not from a JSON object, whose integer-like
+  names would come first). The file is the same bytes every time it is built
+  from the same records and commits.
 - `checksum` is `sha256:` and the SHA-256 of the `models` array written as
   compact JSON (`JSON.stringify(index.models)`), so a consumer can check that
   it read the whole file.
@@ -251,7 +259,10 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    - the JSON AST passes the structural checks that ModelSpec's
      [JSON format](https://github.com/specscore/modelspec/blob/main/spec/json-format.md)
      lists (version, module, unique names, references that resolve, supported
-     types and constraints, keys, enum values) and has at least one entity;
+     types and constraints, keys, enum values) and has at least one entity. The
+     JSON is read with a reader that refuses a name used twice in one object
+     (`JSON.parse` would keep the last one), and a name such as `constructor`
+     or `toString` is an ordinary name;
    - the module the files declare is the record's `module`, and `module.id`
      fits the address (see [Addresses](#addresses));
    - the JSON AST is what the HCL source says (see below);
@@ -267,13 +278,34 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    `--end-of-options`, so a value starting with `-` cannot be an option; https
    only (`GIT_ALLOW_PROTOCOL`); global and system git configuration ignored and
    every inherited `GIT_*` variable dropped; repositories created without
-   templates, so no hook is copied in; literal pathspecs, with the path git
+   templates; hooks, file-system monitors and replace refs switched off
+   (`core.hooksPath`, `core.fsmonitor`, `core.useReplaceRefs`,
+   `GIT_NO_REPLACE_OBJECTS`), so no repository can run code of its own or make
+   an object id read as something else; literal pathspecs, with the path git
    returns compared with the path asked for; and files read from the object
    store by object id, never checked out.
+
+   **The cache is never in the checkout.** Fetched repositories are kept in a
+   per-user directory, `$XDG_CACHE_HOME/modelspec-registry` or
+   `~/.cache/modelspec-registry`, created private (`0700`) and refused when it
+   is a symbolic link, owned by someone else, or writable by others. A pull
+   request cannot plant anything there, and a checkout that tracks a `.cache`
+   is refused outright (`git rm -r --cached .cache`). Even in that directory
+   nothing is trusted: a cached repository is reused only when its
+   configuration holds only what the registry writes (for a history clone, with
+   the expected URL as its remote), it has no alternates, hooks or replace
+   refs, and `git fsck` passes; otherwise it is deleted and fetched again. A
+   history clone is refreshed through its own remote, and is cloned again when
+   that fails, so a publisher moving its default branch never breaks the check.
 3. **SpecScore's linter** (`npm run lint:hcl`, [`scripts/lint-hcl.mjs`](scripts/lint-hcl.mjs))
    runs `specscore graph lint` over each HCL source. It is the one real ModelSpec
    HCL parser there is today, and checks syntax, references, reserved names
-   and duplicates. The SpecScore release is pinned by version and SHA-256.
+   and duplicates. The SpecScore release is pinned by version and SHA-256, and
+   the hash is checked before every run, not only after a download: the cached
+   archive must match it (or is downloaded again), and the binary is unpacked
+   fresh from those verified bytes into a private directory that is removed
+   afterwards. A binary lying in the cache is never executed. `SPECSCORE=<path>`
+   runs a binary you name instead.
 
 `npm test` proves each of these fails on a broken entry, offline, with local
 git repositories standing in for https URLs: every kind of repository value
@@ -284,7 +316,12 @@ side branch has, a missing, symbolic-link, submodule, directory or oversized
 file, a JSON file that is not JSON or breaks each structural rule, a module or
 `module.id` that disagrees with the record, a JSON AST that differs from its
 HCL source in each way, an HCL source the registry cannot read, each licence
-mismatch, and a missing, stale or edited `index.json`. `npm run test:ingitdb`
+mismatch, a missing, stale or edited `index.json`, and the cache: a tracked
+`.cache`, an unsafe cache directory, a cached repository carrying a forged
+replace ref, a planted hook, a redirecting configuration, an alternates file or
+a corrupt object, a publisher's branch that moves between two runs, a planted or
+tampered linter binary or archive, and names such as `constructor`, `__proto__`
+and a name used twice in the JSON. `npm run test:ingitdb`
 (with `INGITDB_CLI` set to the CLI) proves inGitDB rejects each broken
 constraint of the collection definitions.
 
@@ -308,7 +345,8 @@ ModelSpec is specified, but its tooling is not all published. As of
   enums, with literal values), which writes the JSON AST from the source and
   compares it with the published one, ignoring the module (HCL has nowhere to
   state it), the order of names and the layout. A source with collections,
-  recordsets, projections or expressions is refused rather than guessed at, and
+  recordsets, projections, `index` blocks or expressions is refused rather than
+  guessed at (so a model that declares an index cannot be registered yet), and
   so is a module-qualified reference to another module (ModelSpec's
   [decision 0014](https://github.com/specscore/modelspec/blob/main/spec/decisions/0014-module-qualified-references.md)
   leaves finding modules to the consumer, and the registry has no resolver

@@ -16,7 +16,9 @@ import { fileURLToPath } from 'node:url';
 import { checkRegistry } from './lib/registry.mjs';
 
 const root = process.argv[2] ?? dirname(dirname(fileURLToPath(import.meta.url)));
-const { problems, models } = checkRegistry({ root });
+let result;
+try { result = checkRegistry({ root }); } catch (error) { console.error(`error: ${error.message}`); process.exit(1); }
+const { problems, models } = result;
 if (problems.length > 0) {
   for (const problem of problems) console.error(`error: ${problem}`);
   console.error(`${problems.length} problem${problems.length === 1 ? '' : 's'} in ${models} model${models === 1 ? '' : 's'}`);

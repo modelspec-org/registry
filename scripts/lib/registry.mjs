@@ -12,8 +12,8 @@ import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import { addressOf, commitPattern, defaultBranch, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey } from './git.mjs';
-import { astDifferences, describeEntities, modelspecVersion, parseHcl, toModelspecJson, validateModel } from './modelspec.mjs';
+import { addressOf, commitPattern, defaultBranch, defaultCacheDir, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey, trackedCacheProblems } from './git.mjs';
+import { astDifferences, describeModel, modelspecVersion, parseHcl, parseJson, toModelspecJson, validateModel } from './modelspec.mjs';
 
 export const registryFormat = 'modelspec-registry/draft-1';
 export const statuses = ['draft', 'published', 'deprecated'];
@@ -186,7 +186,7 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
   if (!readable) return { problems };
 
   let ast;
-  try { ast = JSON.parse(texts.json_file); } catch (error) { return fail(`${data.json_file} is not JSON: ${error.message}`); }
+  try { ast = parseJson(texts.json_file); } catch (error) { return fail(`${data.json_file} is not JSON, or repeats a name: ${error.message}`); }
   const structural = validateModel(ast);
   for (const problem of structural) problems.push(`${file}: ${data.json_file}: ${problem}`);
   if (structural.length > 0) return { problems };
@@ -203,8 +203,10 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
 
   // The JSON AST is what the HCL source says. There is no ModelSpec tool that
   // does this yet; see scripts/lib/modelspec.mjs for what is compared.
+  let document;
   try {
-    const differences = astDifferences(toModelspecJson(parseHcl(texts.source_file), ast.module), ast);
+    document = parseHcl(texts.source_file);
+    const differences = astDifferences(toModelspecJson(document, ast.module), ast);
     for (const difference of differences.slice(0, maxDifferences)) problems.push(`${file}: ${data.json_file} does not match ${data.source_file}: ${difference}`);
     if (differences.length > maxDifferences) problems.push(`${file}: ${data.json_file} does not match ${data.source_file}: ${differences.length - maxDifferences} more differences`);
   } catch (error) { problems.push(`${file}: ${data.source_file}: ${error.message}`); }
@@ -232,7 +234,7 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
       licence: data.licence,
       files: { source: data.source_file, json: data.json_file },
       maintainers: [...data.maintainers],
-      entities: describeEntities(ast),
+      ...describeModel(document),
     },
   };
 }
@@ -251,10 +253,13 @@ export function buildIndex(entries) {
 
 // Reads every model at its commit: { problems, entries, registry }. A model
 // that fails its checks has no entry and gives problems.
-export function loadModels({ root, urlFor, cacheDir = join(root, '.cache'), fetched = new Set(), branches = new Map() } = {}) {
+export function loadModels({ root, urlFor, cacheDir = defaultCacheDir(), fetched = new Set(), branches = new Map() } = {}) {
   const registry = readRegistry(root);
-  const problems = [...registry.problems, ...recordProblems(registry)];
+  const tracked = trackedCacheProblems(root);
+  const problems = [...tracked, ...registry.problems, ...recordProblems(registry)];
   const entries = [];
+  // Nothing is fetched into, or read from, a checkout that tracks a cache.
+  if (tracked.length > 0) return { problems, entries, registry };
   const historyDir = join(cacheDir, 'history');
   for (const record of registry.models) {
     const result = readModel({ record, urlFor, cacheDir: join(cacheDir, 'models'), historyDir, fetched, branches });
