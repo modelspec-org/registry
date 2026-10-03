@@ -7,9 +7,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, test } from 'node:test';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
@@ -527,17 +527,42 @@ test('a record has declared columns only: an undeclared key, an id override and 
     assert.equal(entries[0].id, 'fixture', `${name}: the id is the file name`);
     for (const key of Object.keys(extra).filter((key) => key !== 'id')) assert.equal(key in entries[0], false, `${name}: ${key} is not in the entry`);
   }
-  // A YAML merge key hides a homepage from the URL check; it is read as a key named "<<" and refused.
-  const text = `${stringifyYaml({ ...record, homepage: undefined })}<<:\n  homepage: 'javascript:alert(1)'\n`;
-  assert.ok('homepage' in parseYaml(text, { merge: true }), 'positive control: a parser that merges would give the record this homepage');
-  const dir = registry({ fixture: record }, { index: false });
-  writeFileSync(recordFile(dir), text);
-  const read = readRegistry(dir);
-  assert.ok('<<' in read.models[0].data);
-  assert.equal(read.models[0].data.homepage, undefined);
-  expectProblem(check(dir).problems, /^models\/\$records\/fixture\.yaml: "<<" merge keys are not allowed/);
-  assert.equal('homepage' in loadModels(options(dir)).entries[0], false);
-  assert.doesNotMatch(buildIndex(loadModels(options(dir)).entries), /javascript|<</);
+  // A YAML merge key hides a homepage from the URL check; it is refused in every spelling the reader
+  // would merge: plain, quoted, as a complex key, with an explicit tag, and under a %YAML 1.1 directive.
+  const base = stringifyYaml({ ...record, homepage: undefined });
+  const merged = "{homepage: 'javascript:alert(1)'}";
+  const spellings = {
+    'a plain key': `${base}<<: ${merged}\n`,
+    'a double-quoted key': `${base}"<<": ${merged}\n`,
+    'a single-quoted key': `${base}'<<': ${merged}\n`,
+    'a complex key': `${base}? <<\n: ${merged}\n`,
+    'a !!merge key': `${base}!!merge <<: ${merged}\n`,
+    'a verbatim merge tag': `${base}!<tag:yaml.org,2002:merge> <<: ${merged}\n`,
+    'a %YAML 1.1 directive': `%YAML 1.1\n---\n${base}<<: ${merged}\n`,
+  };
+  assert.ok('homepage' in parseYaml(spellings['a plain key'], { merge: true }), 'positive control: a parser that merges would give the record this homepage');
+  assert.equal(parseYaml(spellings['a !!merge key'], { merge: false }).homepage, 'javascript:alert(1)', 'positive control: merge: false alone still merges a !!merge key');
+  assert.equal(parseYaml(spellings['a %YAML 1.1 directive'], { merge: false }).homepage, 'javascript:alert(1)', 'positive control: merge: false alone still merges under %YAML 1.1');
+  for (const [name, text] of Object.entries(spellings)) {
+    const dir = registry({ fixture: record }, { index: false });
+    writeFileSync(recordFile(dir), text);
+    const problems = check(dir).problems;
+    expectProblem(problems, /^models\/\$records\/fixture\.yaml: "<<" merge keys are not allowed/);
+    assert.equal(problems.filter((problem) => /merge keys are not allowed/.test(problem)).length, 1, `${name}: reported once`);
+    if (name.includes('%YAML')) expectProblem(problems, /^models\/\$records\/fixture\.yaml: a %YAML directive is not allowed/);
+    assert.ok(loadModels(options(dir)).problems.some((problem) => /merge keys are not allowed/.test(problem)), `${name}: build-index.mjs stops on any problem, so nothing is written`);
+  }
+  // A %YAML directive is refused on its own: under 1.1, `title: yes` is the boolean true and `title: 1:30` the number 90.
+  for (const directive of ['%YAML 1.1\n---\n', '%YAML 1.2\n---\n']) {
+    const dir = registry({ fixture: record }, { index: false });
+    writeFileSync(recordFile(dir), `${directive}${stringifyYaml(record)}`);
+    expectProblem(check(dir).problems, /^models\/\$records\/fixture\.yaml: a %YAML directive is not allowed/);
+  }
+  assert.equal(parseYaml('%YAML 1.1\n---\ntitle: yes\n').title, true, 'positive control: 1.1 reads yes as a boolean');
+  // An ordinary record, and `title: yes` without a directive, are read as written.
+  const plain = registry({ fixture: { ...record, title: 'yes' } }, { index: false });
+  assert.equal(readRegistry(plain).models[0].data.title, 'yes');
+  assert.deepEqual(readRegistry(plain).problems, []);
   // A maintainer record is held to its collection's columns too, and a record must be a mapping.
   const maint = registry({ fixture: record }, { index: false });
   writeFileSync(join(maint, 'maintainers', '$records', 'trakhimenok.yaml'), 'name: A\nrole: admin\n');
@@ -568,10 +593,18 @@ test('the suite\'s git calls ignore the user\'s git configuration: a decoy globa
   const plain = join(scratch, `decoy-plain-${count++}`);
   mkdirSync(plain);
   Object.assign(process.env, { HOME: home, XDG_CONFIG_HOME: join(home, '.config') });
+  // The control runs git with the process environment minus every GIT_ variable (an inherited GIT_DIR or
+  // GIT_WORK_TREE would send it into another repository) and keeps the decoy HOME; and only inside `plain`.
+  const controlEnv = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  const control = (...args) => {
+    assert.ok(realpathSync(plain).startsWith(`${realpathSync(scratch)}${sep}`), 'the control runs only inside the test\'s temporary directory');
+    return execFileSync('git', ['-C', plain, ...args], { stdio: 'pipe', env: controlEnv }).toString();
+  };
   try {
-    // Positive control: plain git with that environment does not get a commit through.
-    execFileSync('git', ['-C', plain, 'init', '-q'], { stdio: 'pipe' });
-    assert.throws(() => execFileSync('git', ['-C', plain, '-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-q', '--allow-empty', '-m', 'x'], { stdio: 'pipe' }), 'the decoy configuration is read by an unprotected git');
+    // Positive control: git with that environment and no protection does not get a commit through.
+    control('init', '-q');
+    assert.equal(control('rev-parse', '--absolute-git-dir').trim(), join(realpathSync(plain), '.git'), 'the control repository is the one in the temporary directory');
+    assert.throws(() => control('-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-q', '--allow-empty', '-m', 'x'), /gpg failed to sign the data/, 'the decoy configuration is read by an unprotected git');
     // The fixture helpers commit anyway, on the branch they ask for.
     const source = modelOrigin('decoy');
     assert.match(source.commit, /^[0-9a-f]{40}$/);
@@ -640,7 +673,7 @@ test('the registry never reads global or system git configuration, nor inherited
   const source = modelOrigin('redirected');
   const cfg = join(scratch, `gitconfig-${count++}`);
   writeFileSync(cfg, `[url "${origins.get(source.repository)}"]\n\tinsteadOf = https://example.test/fixtures/not-there\n`);
-  const plain = execFileSync('git', ['ls-remote', 'https://example.test/fixtures/not-there', 'HEAD'], { stdio: 'pipe', env: { ...process.env, GIT_CONFIG_GLOBAL: cfg, GIT_CONFIG_NOSYSTEM: '1', GIT_ALLOW_PROTOCOL: 'https:file' } }).toString();
+  const plain = execFileSync('git', ['ls-remote', 'https://example.test/fixtures/not-there', 'HEAD'], { stdio: 'pipe', env: { ...plainEnv(), GIT_CONFIG_GLOBAL: cfg, GIT_ALLOW_PROTOCOL: 'https:file' } }).toString();
   assert.match(plain, /HEAD/, 'positive control: the rewrite works for a git that reads the config');
   const saved = { GIT_CONFIG_GLOBAL: process.env.GIT_CONFIG_GLOBAL, GIT_DIR: process.env.GIT_DIR, GIT_WORK_TREE: process.env.GIT_WORK_TREE, GIT_INDEX_FILE: process.env.GIT_INDEX_FILE, GIT_SSL_CAINFO: process.env.GIT_SSL_CAINFO, GIT_CONFIG_COUNT: process.env.GIT_CONFIG_COUNT };
   Object.assign(process.env, { GIT_CONFIG_GLOBAL: cfg, GIT_DIR: join(scratch, 'no-such-git-dir'), GIT_WORK_TREE: scratch, GIT_INDEX_FILE: join(scratch, 'no-index'), GIT_SSL_CAINFO: '/ca.pem', GIT_CONFIG_COUNT: '1' });

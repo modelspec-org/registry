@@ -11,7 +11,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { isScalar, parse as parseYaml, parseDocument, visit } from 'yaml';
 import { addressOf, commitPattern, defaultBranch, defaultCacheDir, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey, trackedCacheProblems } from './git.mjs';
 import { homepageProblem } from './urls.mjs';
 import { astDifferences, describeModel, modelspecVersion, parseHcl, parseJson, toModelspecJson, validateModel } from './modelspec.mjs';
@@ -26,10 +26,26 @@ const spdxPattern = /^[A-Za-z0-9][A-Za-z0-9.+-]*$/;
 
 const recordsDir = (root, collection) => join(root, collection, '$records');
 
-// Records are read with YAML merge keys switched off, so that `<<` is an
-// ordinary key (which recordProblems refuses) and not a hidden source of
-// columns that the checks below never see but inGitDB merges.
+// YAML merge keys are switched off, so a plain `<<` is an ordinary key. That
+// is not enough: the reader still merges when the key carries an explicit tag
+// (`!!merge <<:`) and when the file starts with a `%YAML 1.1` directive, which
+// also changes how scalars such as `yes` or `1:30` are read. So a record is
+// read as a document, and refused when it has any YAML directive or any key
+// whose source text is `<<`, whatever its quoting or tag (readRecord).
 const yamlOptions = { merge: false };
+
+// Parses one record file: { data, problems }. Throws when the text is not
+// YAML (an error, a duplicate key, an unresolved alias, a second document).
+export function readRecord(text, file) {
+  const doc = parseDocument(text, yamlOptions);
+  if (doc.errors.length > 0) throw doc.errors[0];
+  const problems = [];
+  if (doc.directives.yaml.explicit) problems.push(`${file}: a %YAML directive is not allowed: it changes how values and merge keys are read`);
+  let merges = 0;
+  visit(doc, { Pair(_, pair) { if (isScalar(pair.key) && pair.key.source === '<<') merges += 1; } });
+  if (merges > 0) problems.push(`${file}: "<<" merge keys are not allowed; write every column out, so that every value is checked`);
+  return { data: doc.toJS(), problems };
+}
 
 // The columns a collection declares in its definition (the keys of `columns`),
 // or a problem when the definition cannot be read.
@@ -55,9 +71,10 @@ export function readCollection(root, collection) {
   for (const name of readdirSync(dir).sort()) {
     const file = `${collection}/$records/${name}`;
     if (!name.endsWith('.yaml')) { problems.push(`${file}: a record is a <key>.yaml file; remove or rename it`); continue; }
-    let data;
-    try { data = parseYaml(readFileSync(join(dir, name), 'utf8'), yamlOptions); } catch (error) { problems.push(`${file}: not YAML: ${error.message}`); continue; }
-    records.push({ key: name.slice(0, -'.yaml'.length), file, data: data ?? {} });
+    let read;
+    try { read = readRecord(readFileSync(join(dir, name), 'utf8'), file); } catch (error) { problems.push(`${file}: not YAML: ${error.message}`); continue; }
+    problems.push(...read.problems);
+    records.push({ key: name.slice(0, -'.yaml'.length), file, data: read.data ?? {} });
   }
   return { records, problems };
 }
@@ -75,14 +92,14 @@ export function readRegistry(root) {
 }
 
 // A record is a mapping of declared columns and nothing else: no key the
-// collection does not declare (which would otherwise go unchecked), and no
-// `<<` merge key.
+// collection does not declare (which would otherwise go unchecked). A `<<` key
+// is skipped here because readRecord refuses it, in every spelling.
 function keyProblems(file, data, declared) {
   if (data === null || typeof data !== 'object' || Array.isArray(data)) return [`${file}: a record is a mapping of columns`];
   const problems = [];
   for (const key of Object.keys(data)) {
-    if (key === '<<') problems.push(`${file}: "<<" merge keys are not allowed; write every column out, so that every value is checked`);
-    else if (!declared.includes(key)) problems.push(`${file}: ${JSON.stringify(key)} is not a column of this collection (${declared.join(', ')}); the collection definition declares every column`);
+    if (key === '<<') continue; // refused when the file is read (readRecord), once, in whatever spelling
+    if (!declared.includes(key)) problems.push(`${file}: ${JSON.stringify(key)} is not a column of this collection (${declared.join(', ')}); the collection definition declares every column`);
   }
   return problems;
 }

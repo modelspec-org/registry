@@ -287,9 +287,12 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
      hosts of each record's `repository`;
    - every key of a record is a column its collection definition declares: an
      undeclared key (an `id`, a typo, a column of another collection) is
-     refused, and so is a YAML merge key (`<<`), which would hide a value from
-     these checks. An index entry is built from the declared columns only, in
-     one fixed order, and its `id` is always the record's file name;
+     refused. So is a YAML merge key, in any spelling (`<<`, `"<<"`, `? <<`,
+     `!!merge <<`, or a `<<` under a `%YAML 1.1` directive), because a merged
+     value is not a value written in the record; and so is any `%YAML` directive,
+     which changes how values such as `yes` or `1:30` are read. An index entry is
+     built from fixed fields in one order, and its `id` is always the record's
+     file name;
    - ids follow the rule above; commits are lower-case hex; the licence is
      SPDX-shaped; the address is the repository plus the module, and no
      address is registered twice (compared ignoring case);
