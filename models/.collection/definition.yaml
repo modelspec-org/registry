@@ -30,6 +30,13 @@ columns:
     type: string
     required: true
     enum: [draft, published, deprecated]
+  # homepage is optional. inGitDB checks its type and length; scripts/check.mjs
+  # checks the rest (https, a public host, the host and path character sets, no
+  # port, userinfo, query or fragment) and never fetches it.
+  homepage:
+    type: string
+    min_length: 1
+    max_length: 200
   # address and repository carry no `format:` hint: inGitDB treats `format`
   # as a rendering hint and does not validate it. scripts/check.mjs checks
   # both: repository is an https URL on an allowed host without .git, and
@@ -71,6 +78,7 @@ columns_order:
   - title
   - description
   - status
+  - homepage
   - address
   - repository
   - commit

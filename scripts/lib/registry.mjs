@@ -11,8 +11,9 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { isScalar, parse as parseYaml, parseDocument, visit } from 'yaml';
 import { addressOf, commitPattern, defaultBranch, defaultCacheDir, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey, trackedCacheProblems } from './git.mjs';
+import { homepageProblem } from './urls.mjs';
 import { astDifferences, describeModel, modelspecVersion, parseHcl, parseJson, toModelspecJson, validateModel } from './modelspec.mjs';
 
 export const registryFormat = 'modelspec-registry/draft-1';
@@ -25,6 +26,41 @@ const spdxPattern = /^[A-Za-z0-9][A-Za-z0-9.+-]*$/;
 
 const recordsDir = (root, collection) => join(root, collection, '$records');
 
+// YAML merge keys are switched off, so a plain `<<` is an ordinary key. That
+// is not enough: the reader still merges when the key carries an explicit tag
+// (`!!merge <<:`) and when the file starts with a `%YAML 1.1` directive, which
+// also changes how scalars such as `yes` or `1:30` are read. So a record is
+// read as a document, and refused when it has any YAML directive or any key
+// whose source text is `<<`, whatever its quoting or tag (readRecord).
+const yamlOptions = { merge: false };
+
+// Parses one record file: { data, problems }. Throws when the text is not
+// YAML (an error, a duplicate key, an unresolved alias, a second document).
+export function readRecord(text, file) {
+  const doc = parseDocument(text, yamlOptions);
+  if (doc.errors.length > 0) throw doc.errors[0];
+  const problems = [];
+  if (doc.directives.yaml.explicit) problems.push(`${file}: a %YAML directive is not allowed: it changes how values and merge keys are read`);
+  let merges = 0;
+  visit(doc, { Pair(_, pair) { if (isScalar(pair.key) && pair.key.source === '<<') merges += 1; } });
+  if (merges > 0) problems.push(`${file}: "<<" merge keys are not allowed; write every column out, so that every value is checked`);
+  return { data: doc.toJS(), problems };
+}
+
+// The columns a collection declares in its definition (the keys of `columns`),
+// or a problem when the definition cannot be read.
+export function readColumns(root, collection) {
+  const file = `${collection}/.collection/definition.yaml`;
+  try {
+    const definition = parseYaml(readFileSync(join(root, file), 'utf8'), yamlOptions);
+    const columns = Object.keys(definition?.columns ?? {});
+    if (columns.length === 0) return { columns, problems: [`${file}: declares no columns`] };
+    return { columns, problems: [] };
+  } catch (error) {
+    return { columns: [], problems: [`${file}: cannot read the collection definition: ${error.message}`] };
+  }
+}
+
 // Reads one collection's records as [{ key, file, data }] sorted by key, with a
 // problem for any file in $records that is not <key>.yaml.
 export function readCollection(root, collection) {
@@ -35,9 +71,10 @@ export function readCollection(root, collection) {
   for (const name of readdirSync(dir).sort()) {
     const file = `${collection}/$records/${name}`;
     if (!name.endsWith('.yaml')) { problems.push(`${file}: a record is a <key>.yaml file; remove or rename it`); continue; }
-    let data;
-    try { data = parseYaml(readFileSync(join(dir, name), 'utf8')); } catch (error) { problems.push(`${file}: not YAML: ${error.message}`); continue; }
-    records.push({ key: name.slice(0, -'.yaml'.length), file, data: data ?? {} });
+    let read;
+    try { read = readRecord(readFileSync(join(dir, name), 'utf8'), file); } catch (error) { problems.push(`${file}: not YAML: ${error.message}`); continue; }
+    problems.push(...read.problems);
+    records.push({ key: name.slice(0, -'.yaml'.length), file, data: read.data ?? {} });
   }
   return { records, problems };
 }
@@ -45,7 +82,26 @@ export function readCollection(root, collection) {
 export function readRegistry(root) {
   const models = readCollection(root, 'models');
   const maintainers = readCollection(root, 'maintainers');
-  return { models: models.records, maintainers: maintainers.records, problems: [...models.problems, ...maintainers.problems] };
+  const columns = { models: readColumns(root, 'models'), maintainers: readColumns(root, 'maintainers') };
+  return {
+    models: models.records,
+    maintainers: maintainers.records,
+    columns: { models: columns.models.columns, maintainers: columns.maintainers.columns },
+    problems: [...models.problems, ...maintainers.problems, ...columns.models.problems, ...columns.maintainers.problems],
+  };
+}
+
+// A record is a mapping of declared columns and nothing else: no key the
+// collection does not declare (which would otherwise go unchecked). A `<<` key
+// is skipped here because readRecord refuses it, in every spelling.
+function keyProblems(file, data, declared) {
+  if (data === null || typeof data !== 'object' || Array.isArray(data)) return [`${file}: a record is a mapping of columns`];
+  const problems = [];
+  for (const key of Object.keys(data)) {
+    if (key === '<<') continue; // refused when the file is read (readRecord), once, in whatever spelling
+    if (!declared.includes(key)) problems.push(`${file}: ${JSON.stringify(key)} is not a column of this collection (${declared.join(', ')}); the collection definition declares every column`);
+  }
+  return problems;
 }
 
 // A record whose repository, address, module, commit and paths are well formed:
@@ -58,14 +114,20 @@ export const wellFormed = (record) => {
 
 // Rules on the records alone (no network): the parts of the format that the
 // inGitDB collection definitions cannot express.
-export function recordProblems({ models, maintainers }) {
+export function recordProblems({ models, maintainers, columns }) {
   const problems = [];
+  for (const { file, data } of maintainers) problems.push(...keyProblems(file, data, columns.maintainers));
   const byAddress = new Map();
   const handles = new Set(maintainers.map((maintainer) => maintainer.key));
   for (const { key, file, data } of models) {
+    problems.push(...keyProblems(file, data, columns.models));
     if (!idPattern.test(key) || key.length > 80) problems.push(`${file}: id "${key}" must be lower-case letters, digits and single hyphens, at most 80 characters`);
     if (data.format !== registryFormat) problems.push(`${file}: format must be ${registryFormat}`);
     if (!statuses.includes(data.status)) problems.push(`${file}: status must be one of ${statuses.join(', ')}`);
+    if (data.homepage !== undefined) {
+      const problem = homepageProblem(data.homepage);
+      if (problem) problems.push(`${file}: homepage: ${problem}`);
+    }
     if (!commitPattern.test(data.commit ?? '')) problems.push(`${file}: commit must be a full 40-character lower-case commit id`);
     if (!repositoryKey(data.repository)) problems.push(`${file}: repository must be an https URL of a repository on ${[...repositoryHosts.keys()].join(', ')}, such as https://github.com/{org}/{repo} (no trailing slash, .git, "." or ".." segments)`);
     if (typeof data.module !== 'string' || !modulePattern.test(data.module)) problems.push(`${file}: module must be a ModelSpec module name: a letter, then letters, digits and "_"`);
@@ -224,6 +286,7 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
       title: data.title,
       description: data.description,
       status: data.status,
+      ...(data.homepage === undefined ? {} : { homepage: data.homepage }),
       address: data.address,
       repository: data.repository,
       commit: data.commit,
