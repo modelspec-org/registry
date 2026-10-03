@@ -9,7 +9,7 @@ description: >-
 status: draft
 address: modelspec://github.com/datatug/chinookdb/chinook
 repository: https://github.com/datatug/chinookdb
-commit: be96bf45fdfa13559b6627d281c1e30ce92ad38f
+commit: 8c9e62ed6641c0a00faa3867167d928af4c44b06
 module: chinook
 source_file: model/chinook.modelspec.hcl
 json_file: model/chinook.modelspec.json
