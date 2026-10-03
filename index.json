@@ -1,12 +1,13 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:020a19571381f04582eb03f3685b23f4c4340431ba06c8171da85f0884fdde4d",
+  "checksum": "sha256:5916bb0f9f6a83a43207b79cadd54eb987dd4d3efdc6f60b128ecb80fc67b428",
   "models": [
     {
       "id": "chinook",
       "title": "Chinook music store",
       "description": "The data model of the Chinook sample database: a digital music store with artists, albums, tracks, playlists, customers, employees and invoices, as 11 entities whose names are the upstream table and column names. Anything that stores Chinook, such as a SQLite file, a CSV export or an OpenVaultDB database, is a copy of this model.",
       "status": "draft",
+      "homepage": "https://chinookdb.com/model/",
       "address": "modelspec://github.com/datatug/chinookdb/chinook",
       "repository": "https://github.com/datatug/chinookdb",
       "commit": "8c9e62ed6641c0a00faa3867167d928af4c44b06",

@@ -15,6 +15,7 @@ import { after, test } from 'node:test';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { addressOf, cacheRepoSound, defaultBranch, defaultCacheDir, entryFor, gitEnv, git, historyPath, isRepositoryPath, maxFileBytes, onBranch, openCommit, repositoryHosts, repositoryKey, setGitProtocols, trackedCacheProblems } from './lib/git.mjs';
 import { astDifferences, describeModel, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel } from './lib/modelspec.mjs';
+import { homepageProblem, maxHomepageLength, publicHttpsProblem } from './lib/urls.mjs';
 import { specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
 import { buildIndex, checkRegistry, declaredLicence, loadModels, readRegistry, recordProblems, registryFormat, wellFormed } from './lib/registry.mjs';
 
@@ -171,6 +172,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.equal(data.commit, '8c9e62ed6641c0a00faa3867167d928af4c44b06');
   assert.equal(data.module, 'chinook');
   assert.equal(data.status, 'draft');
+  assert.equal(data.homepage, 'https://chinookdb.com/model/');
   assert.deepEqual([data.source_file, data.json_file], ['model/chinook.modelspec.hcl', 'model/chinook.modelspec.json']);
   assert.ok(wellFormed(committed.models[0]));
   const index = JSON.parse(readFileSync(join(root, 'index.json'), 'utf8'));
@@ -179,6 +181,7 @@ test('the committed records are well formed and the committed index.json is cons
   const [chinook] = index.models;
   assert.deepEqual([chinook.id, chinook.address, chinook.repository, chinook.commit, chinook.licence], ['chinook', data.address, data.repository, data.commit, 'MIT']);
   assert.deepEqual(chinook.files, { source: data.source_file, json: data.json_file });
+  assert.equal(chinook.homepage, data.homepage);
   assert.equal(chinook.entities.length, 11);
   assert.equal(readFileSync(join(root, 'index.json'), 'utf8'), `${JSON.stringify(index, null, 2)}\n`, 'index.json is written the way buildIndex writes it');
 });
@@ -310,6 +313,90 @@ test('ids, formats, statuses, commit ids, licences and maintainers are checked',
   writeFileSync(join(stray, 'models', '$records', 'bad.yaml'), 'a: [');
   expectProblem(check(stray).problems, /^models\/\$records\/README\.md: a record is a <key>\.yaml file/);
   expectProblem(check(stray).problems, /^models\/\$records\/bad\.yaml: not YAML/);
+});
+
+test('a homepage is optional: with one it is checked and indexed, without one the entry has none', () => {
+  const source = modelOrigin('homed');
+  const withHomepage = registry({ homed: fixtureRecord(source, { homepage: 'https://models.example.com/fixture/' }) });
+  assert.deepEqual(check(withHomepage).problems, []);
+  const [entry] = loadModels(options(withHomepage)).entries;
+  assert.equal(entry.homepage, 'https://models.example.com/fixture/');
+  assert.deepEqual(Object.keys(entry).slice(0, 5), ['id', 'title', 'description', 'status', 'homepage']);
+  assert.match(readFileSync(join(withHomepage, 'index.json'), 'utf8'), /^ {6}"homepage": "https:\/\/models\.example\.com\/fixture\/",$/m);
+  // A homepage need not be on github.com; it may have a path, and the bare host is written with its slash.
+  for (const homepage of ['https://models.example.com/', 'https://example.com/a/b-c_d.e~f', 'https://a.b.c.example.org/x/', `https://example.com/${'a'.repeat(200 - 'https://example.com/'.length)}`]) {
+    assert.equal(homepageProblem(homepage), null, homepage);
+  }
+  const without = registry({ plain: fixtureRecord(source) });
+  assert.deepEqual(check(without).problems, []);
+  const [plain] = loadModels(options(without)).entries;
+  assert.equal('homepage' in plain, false);
+  assert.doesNotMatch(readFileSync(join(without, 'index.json'), 'utf8'), /homepage/);
+  // The checksum covers the entry, so a homepage added to a record with no new index is stale.
+  writeFileSync(join(without, 'models', '$records', 'plain.yaml'), stringifyYaml(fixtureRecord(source, { homepage: 'https://models.example.com/fixture/' })));
+  expectProblem(check(without).problems, /^index\.json differs/);
+});
+
+test('a homepage that is not a public https URL of at most 200 characters is refused, and never fetched', () => {
+  const source = { name: 'a', commit: 'a'.repeat(40), repository: 'https://github.com/datatug/chinookdb' };
+  const problems = (homepage) => recordProblems({ models: [{ key: 'x', file: 'models/$records/x.yaml', data: fixtureRecord(source, { address: 'modelspec://github.com/datatug/chinookdb/fixture', homepage }) }], maintainers: [{ key: 'trakhimenok' }] });
+  const refused = {
+    'http://models.example.com/': /must be https, not http/,
+    'ftp://models.example.com/': /must be https, not ftp/,
+    'javascript:alert(1)': /must be https, not javascript/,
+    '//models.example.com/': /is not a URL/,
+    'models.example.com': /is not a URL/,
+    'https://user@models.example.com/': /must not contain credentials/,
+    'https://user:secret@models.example.com/': /must not contain credentials/,
+    'https://models.example.com/?a=1': /must not contain a query/,
+    'https://models.example.com/?': /must not contain a query/,
+    'https://models.example.com/#top': /must not contain a fragment/,
+    'https://models.example.com/#': /must not contain a fragment/,
+    'https://127.0.0.1/': /is an IP address/,
+    'https://10.0.0.5/model/': /is an IP address/,
+    'https://169.254.169.254/latest/': /is an IP address/,
+    'https://2130706433/': /is an IP address/,
+    'https://0x7f.1/': /is an IP address/,
+    'https://[::1]/': /is an IP address/,
+    'https://[::ffff:7f00:1]/': /is an IP address/,
+    'https://localhost/': /single-label name/,
+    'https://localhost:8443/': /single-label name|not written canonically/,
+    'https://app.localhost/': /\.localhost\)/,
+    'https://printer.local/': /\.local\)/,
+    'https://wiki.internal/': /\.internal\)/,
+    'https://router.home.arpa/': /\.home\.arpa\)/,
+    'https://models.test/': /\.test\)/,
+    'https://models.example/': /\.example\)/,
+    'https://models.example.com./': /ends with a dot/,
+    'https://models..example.com/': /is not written canonically|empty label/,
+    'https://Models.Example.com/': /is not written canonically/,
+    'https://models.example.com:443/': /is not written canonically/,
+    'https://models.example.com//x': /empty path segment/,
+    'https://models.example.com/a/../b': /is not written canonically/,
+    'https://models.example.com': /is not written canonically \(it would be https:\/\/models\.example\.com\/\)/,
+    'https://models.example.com/%61': /writes %61 for a/,
+    'https://models.example.com/a b': /whitespace/,
+    ' https://models.example.com/': /whitespace/,
+    'https://models.example.com/\\x': /backslash/,
+    'https://models.example.com/\u0000': /control characters/,
+    '': /is not a URL/,
+    '   ': /is not a URL/,
+    [`https://example.com/${'a'.repeat(200 - 'https://example.com/'.length + 1)}`]: /longer than 200 characters/,
+  };
+  for (const [homepage, pattern] of Object.entries(refused)) {
+    expectProblem(problems(homepage), new RegExp(`^models/\\$records/x\\.yaml: homepage: .*${pattern.source}`));
+    assert.match(homepageProblem(homepage), pattern, JSON.stringify(homepage));
+  }
+  for (const homepage of [5, true, null, ['https://models.example.com/'], { url: 'https://models.example.com/' }]) {
+    expectProblem(problems(homepage), /^models\/\$records\/x\.yaml: homepage: is not a URL/);
+  }
+  assert.equal(maxHomepageLength, 200);
+  assert.equal(publicHttpsProblem('https://models.example.com/'), null);
+  assert.deepEqual(problems(undefined), []);
+  // A refused homepage fails the whole check and the model is never indexed.
+  const dir = registry({ fixture: fixtureRecord(modelOrigin('badhome'), { homepage: 'http://models.example.com/' }) }, { index: false });
+  expectProblem(check(dir).problems, /^models\/\$records\/fixture\.yaml: homepage: must be https, not http/);
+  assert.ok(loadModels(options(dir)).problems.some((problem) => /homepage/.test(problem)), 'build-index.mjs stops on any problem, so nothing is written');
 });
 
 test('a model file path that is not a plain path inside the repository fails and never reaches git', () => {

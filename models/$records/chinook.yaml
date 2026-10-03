@@ -7,6 +7,7 @@ description: >-
   stores Chinook, such as a SQLite file, a CSV export or an OpenVaultDB
   database, is a copy of this model.
 status: draft
+homepage: https://chinookdb.com/model/
 address: modelspec://github.com/datatug/chinookdb/chinook
 repository: https://github.com/datatug/chinookdb
 commit: 8c9e62ed6641c0a00faa3867167d928af4c44b06

@@ -100,6 +100,7 @@ The file name is the registry id: `models/$records/chinook.yaml` registers
 | `title` | yes | A short name. |
 | `description` | yes | What the model covers, in a few sentences. |
 | `status` | yes | `draft`, `published` or `deprecated`. |
+| `homepage` | no | The publisher's own page for the model, shown as **Website** on the model's page in the catalogue. A public https URL written canonically (a bare host ends in `/`), at most 200 characters: no userinfo, query or fragment, no IP address, `localhost` or local, internal or reserved name (`.local`, `.internal`, `.test`, …). It need not be on `github.com`. The checks read its text only and **never fetch it**, so a page that is down, moved or not yet deployed does not fail them; anyone who fetches it must check the address the name resolves to. `index.json` carries it on the entry when the record has it, and leaves it out otherwise. |
 | `address` | yes | What consumers write: `modelspec://{host}/{org}/{repo}/{module}`, see [Addresses](#addresses). |
 | `repository` | yes | The repository's https URL on an allowed host (today only `github.com`), as `https://github.com/{org}/{repo}`: no `.git`, trailing slash, `.` or `..` segments. Two spellings that differ only in case are the same repository. |
 | `commit` | yes | Full 40-character commit id of the current reviewed version. It must be in the history of the repository's default branch. |
@@ -182,6 +183,7 @@ model in one file, format `modelspec-registry/draft-1`:
     "title": "Chinook music store",
     "description": "…",
     "status": "draft",
+    "homepage": "https://chinookdb.com/model/",
     "address": "modelspec://github.com/datatug/chinookdb/chinook",
     "repository": "https://github.com/datatug/chinookdb",
     "commit": "8c9e62ed6641c0a00faa3867167d928af4c44b06",
@@ -244,6 +246,10 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
 2. **The model checks** (`npm run check`, [`scripts/check.mjs`](scripts/check.mjs))
    cover what a collection definition cannot express, and everything that
    needs the model's repository:
+   - a `homepage`, when a record has one, is a public https URL of at most 200
+     characters, as the table above says. It is checked as text and not fetched
+     (the checks make no request to a host a record names; they talk to git
+     hosts on the allow-list only);
    - ids follow the rule above; commits are lower-case hex; the licence is
      SPDX-shaped; the address is the repository plus the module, and no
      address is registered twice (compared ignoring case);

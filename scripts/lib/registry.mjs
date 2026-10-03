@@ -13,6 +13,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { addressOf, commitPattern, defaultBranch, defaultCacheDir, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey, trackedCacheProblems } from './git.mjs';
+import { homepageProblem } from './urls.mjs';
 import { astDifferences, describeModel, modelspecVersion, parseHcl, parseJson, toModelspecJson, validateModel } from './modelspec.mjs';
 
 export const registryFormat = 'modelspec-registry/draft-1';
@@ -66,6 +67,10 @@ export function recordProblems({ models, maintainers }) {
     if (!idPattern.test(key) || key.length > 80) problems.push(`${file}: id "${key}" must be lower-case letters, digits and single hyphens, at most 80 characters`);
     if (data.format !== registryFormat) problems.push(`${file}: format must be ${registryFormat}`);
     if (!statuses.includes(data.status)) problems.push(`${file}: status must be one of ${statuses.join(', ')}`);
+    if (data.homepage !== undefined) {
+      const problem = homepageProblem(data.homepage);
+      if (problem) problems.push(`${file}: homepage: ${problem}`);
+    }
     if (!commitPattern.test(data.commit ?? '')) problems.push(`${file}: commit must be a full 40-character lower-case commit id`);
     if (!repositoryKey(data.repository)) problems.push(`${file}: repository must be an https URL of a repository on ${[...repositoryHosts.keys()].join(', ')}, such as https://github.com/{org}/{repo} (no trailing slash, .git, "." or ".." segments)`);
     if (typeof data.module !== 'string' || !modulePattern.test(data.module)) problems.push(`${file}: module must be a ModelSpec module name: a letter, then letters, digits and "_"`);
@@ -224,6 +229,7 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
       title: data.title,
       description: data.description,
       status: data.status,
+      ...(data.homepage === undefined ? {} : { homepage: data.homepage }),
       address: data.address,
       repository: data.repository,
       commit: data.commit,
