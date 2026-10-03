@@ -7,7 +7,7 @@ the JSON AST), its licence and its maintainers.
 
 | Id | Address | Repository at commit | Status |
 |---|---|---|---|
-| `chinook` | `modelspec://github.com/datatug/chinookdb/chinook` | [datatug/chinookdb@be96bf4](https://github.com/datatug/chinookdb/tree/be96bf45fdfa13559b6627d281c1e30ce92ad38f) | draft |
+| `chinook` | `modelspec://github.com/datatug/chinookdb/chinook` | [datatug/chinookdb@8c9e62e](https://github.com/datatug/chinookdb/tree/8c9e62ed6641c0a00faa3867167d928af4c44b06) | draft |
 
 Browse it at <https://modelspec.org/registry/> (being built; not live yet).
 This repository is the data behind that page.
@@ -184,7 +184,7 @@ model in one file, format `modelspec-registry/draft-1`:
     "status": "draft",
     "address": "modelspec://github.com/datatug/chinookdb/chinook",
     "repository": "https://github.com/datatug/chinookdb",
-    "commit": "be96bf45fdfa13559b6627d281c1e30ce92ad38f",
+    "commit": "8c9e62ed6641c0a00faa3867167d928af4c44b06",
     "module": "chinook",
     "module_id": "github.com/datatug/chinookdb/model/chinook",
     "module_version": "0.1.0",

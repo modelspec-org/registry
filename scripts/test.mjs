@@ -168,7 +168,7 @@ test('the committed records are well formed and the committed index.json is cons
   const { data } = committed.models[0];
   assert.equal(data.address, 'modelspec://github.com/datatug/chinookdb/chinook');
   assert.equal(data.repository, 'https://github.com/datatug/chinookdb');
-  assert.equal(data.commit, 'be96bf45fdfa13559b6627d281c1e30ce92ad38f');
+  assert.equal(data.commit, '8c9e62ed6641c0a00faa3867167d928af4c44b06');
   assert.equal(data.module, 'chinook');
   assert.equal(data.status, 'draft');
   assert.deepEqual([data.source_file, data.json_file], ['model/chinook.modelspec.hcl', 'model/chinook.modelspec.json']);
