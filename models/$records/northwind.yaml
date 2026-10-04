@@ -9,7 +9,7 @@ status: draft
 homepage: https://northwind.demodb.dev/model/
 address: modelspec://github.com/demo-db/northwind/northwind
 repository: https://github.com/demo-db/northwind
-commit: 3253072905253d3815dd5a3a2b94f8f257522424
+commit: f5855699eafaba6f09b7f4897abdb2a304698b67
 module: northwind
 source_file: model/northwind.modelspec.hcl
 json_file: model/northwind.modelspec.json

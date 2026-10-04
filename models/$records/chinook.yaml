@@ -10,7 +10,7 @@ status: draft
 homepage: https://chinook.demodb.dev/model/
 address: modelspec://github.com/demo-db/chinook/chinook
 repository: https://github.com/demo-db/chinook
-commit: 184f9ee22101f8f56016c7963d18a406beffa013
+commit: f11b1192ed9f48cdd4f788d1d4ffde0e972ee04b
 module: chinook
 source_file: model/chinook.modelspec.hcl
 json_file: model/chinook.modelspec.json
