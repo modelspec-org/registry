@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:bb0391f61f2934f9790cd8d44839e54ce2ea1552eebae4e660ec12a82fddfb5b",
+  "checksum": "sha256:e3baf779903e2345eced925280adb7ad0d75021dbf926c43e5201fb02502fb7e",
   "models": [
     {
       "id": "chinook",
@@ -1200,6 +1200,523 @@
               "name": "RegionID",
               "type": "reference",
               "references": "Regions",
+              "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
+    {
+      "id": "pubs",
+      "title": "Pubs publishing database",
+      "description": "The classic Microsoft Pubs sample model covers authors, publications, publishers, stores, sales and employees. It preserves all 11 native tables, including keyless discounts and royalty schedules without fabricated identity.",
+      "status": "draft",
+      "homepage": "https://pubs.demodb.dev/model/",
+      "address": "modelspec://github.com/demo-db/pubs/pubs",
+      "repository": "https://github.com/demo-db/pubs",
+      "commit": "34501946b0478b7e2ae13c15b4c57019109b5edc",
+      "module": "pubs",
+      "module_id": "github.com/demo-db/pubs/pubs",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "MIT",
+      "files": {
+        "source": "model/pubs.modelspec.hcl",
+        "json": "model/pubs.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "authors",
+          "key": [
+            "au_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "au_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "au_lname",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "au_fname",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "phone",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "address",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "city",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "zip",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "contract",
+              "type": "int",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "discounts",
+          "key": [],
+          "use": [],
+          "properties": [
+            {
+              "name": "discounttype",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "stor_id",
+              "type": "reference",
+              "references": "stores",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "lowqty",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "highqty",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "discount",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "employee",
+          "key": [
+            "emp_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "emp_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "fname",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "minit",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "lname",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "job_id",
+              "type": "reference",
+              "references": "jobs",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "job_lvl",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "pub_id",
+              "type": "reference",
+              "references": "publishers",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "hire_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "jobs",
+          "key": [
+            "job_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "job_id",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "job_desc",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "min_lvl",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "max_lvl",
+              "type": "int",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "pub_info",
+          "key": [
+            "pub_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "pub_id",
+              "type": "reference",
+              "references": "publishers",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "logo",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "pr_info",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "publishers",
+          "key": [
+            "pub_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "pub_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "pub_name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "city",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "country",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "roysched",
+          "key": [],
+          "use": [],
+          "properties": [
+            {
+              "name": "title_id",
+              "type": "reference",
+              "references": "titles",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "lorange",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "hirange",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "royalty",
+              "type": "int",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "sales",
+          "key": [
+            "stor_id",
+            "ord_num",
+            "title_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "stor_id",
+              "type": "reference",
+              "references": "stores",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ord_num",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ord_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "qty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "payterms",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "title_id",
+              "type": "reference",
+              "references": "titles",
+              "required": true,
+              "key": true
+            }
+          ]
+        },
+        {
+          "name": "stores",
+          "key": [
+            "stor_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "stor_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "stor_name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "stor_address",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "city",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "state",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "zip",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "titleauthor",
+          "key": [
+            "au_id",
+            "title_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "au_id",
+              "type": "reference",
+              "references": "authors",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "title_id",
+              "type": "reference",
+              "references": "titles",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "au_ord",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "royaltyper",
+              "type": "int",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "titles",
+          "key": [
+            "title_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "title_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "type",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "pub_id",
+              "type": "reference",
+              "references": "publishers",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "price",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "advance",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "royalty",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ytd_sales",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "notes",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "pubdate",
+              "type": "string",
               "required": true,
               "key": false
             }

@@ -172,8 +172,12 @@ test('the committed records are well formed and the committed index.json is cons
   const committed = readRegistry(root);
   assert.deepEqual(committed.problems, []);
   assert.deepEqual(recordProblems(committed), []);
-  assert.deepEqual(committed.models.map((model) => model.key), ['chinook', 'northwind']);
-  const { data } = committed.models[0];
+  const recordKeys = readdirSync(join(root, 'models', '$records'))
+    .filter((name) => name.endsWith('.yaml'))
+    .map((name) => name.slice(0, -'.yaml'.length))
+    .sort();
+  assert.deepEqual(committed.models.map((model) => model.key), recordKeys);
+  const { data } = committed.models.find((model) => model.key === 'chinook');
   assert.equal(data.address, 'modelspec://github.com/demo-db/chinook/chinook');
   assert.equal(data.repository, 'https://github.com/demo-db/chinook');
   assert.equal(data.commit, '26e852cca00101f53a84ef8ee1f1ae389067f5cf');
@@ -190,6 +194,19 @@ test('the committed records are well formed and the committed index.json is cons
   assert.deepEqual(chinook.files, { source: data.source_file, json: data.json_file });
   assert.equal(chinook.homepage, data.homepage);
   assert.equal(chinook.entities.length, 11);
+  const pubs = committed.models.find((model) => model.key === 'pubs');
+  assert.ok(pubs, 'the Pubs provider has a committed model record');
+  assert.equal(pubs.data.commit, '34501946b0478b7e2ae13c15b4c57019109b5edc');
+  assert.equal(pubs.data.module, 'pubs');
+  assert.deepEqual([pubs.data.source_file, pubs.data.json_file], ['model/pubs.modelspec.hcl', 'model/pubs.modelspec.json']);
+  const pubsIndex = index.models.find((model) => model.id === 'pubs');
+  assert.ok(pubsIndex, 'the Pubs provider appears in the generated index');
+  assert.equal(pubsIndex.entities.length, 11, 'every native Pubs table is represented');
+  for (const name of ['discounts', 'roysched']) {
+    const entity = pubsIndex.entities.find((candidate) => candidate.name === name);
+    assert.ok(entity, `${name} remains an entity in the index`);
+    assert.deepEqual(entity.key, [], `${name} has no fabricated ModelSpec key`);
+  }
   assert.equal(readFileSync(join(root, 'index.json'), 'utf8'), `${JSON.stringify(index, null, 2)}\n`, 'index.json is written the way buildIndex writes it');
 });
 
