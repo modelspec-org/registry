@@ -7,8 +7,8 @@ the JSON AST), its licence and its maintainers.
 
 | Id | Address | Repository at commit | Status |
 |---|---|---|---|
-| `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@f11b119](https://github.com/demo-db/chinook/tree/f11b1192ed9f48cdd4f788d1d4ffde0e972ee04b) | draft |
-| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@f585569](https://github.com/demo-db/northwind/tree/f5855699eafaba6f09b7f4897abdb2a304698b67) | draft |
+| `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@26e852c](https://github.com/demo-db/chinook/tree/26e852cca00101f53a84ef8ee1f1ae389067f5cf) | draft |
+| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@e747265](https://github.com/demo-db/northwind/tree/e74726515c3833620b54b7a50d1d273276dd23c1) | draft |
 
 Browse it at <https://modelspec.org/registry/> (being built; not live yet).
 This repository is the data behind that page.
@@ -187,7 +187,7 @@ model in one file, format `modelspec-registry/draft-1`:
     "homepage": "https://chinook.demodb.dev/model/",
     "address": "modelspec://github.com/demo-db/chinook/chinook",
     "repository": "https://github.com/demo-db/chinook",
-    "commit": "f11b1192ed9f48cdd4f788d1d4ffde0e972ee04b",
+    "commit": "26e852cca00101f53a84ef8ee1f1ae389067f5cf",
     "module": "chinook",
     "module_id": "github.com/demo-db/chinook/model/chinook",
     "module_version": "0.1.0",
