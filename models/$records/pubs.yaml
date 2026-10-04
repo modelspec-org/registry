@@ -1,0 +1,17 @@
+format: modelspec-registry/draft-1
+title: Pubs publishing database
+description: >-
+  The classic Microsoft Pubs sample model covers authors, publications,
+  publishers, stores, sales and employees. It preserves all 11 native tables,
+  including keyless discounts and royalty schedules without fabricated identity.
+status: draft
+homepage: https://pubs.demodb.dev/model/
+address: modelspec://github.com/demo-db/pubs/pubs
+repository: https://github.com/demo-db/pubs
+commit: 34501946b0478b7e2ae13c15b4c57019109b5edc
+module: pubs
+source_file: model/pubs.modelspec.hcl
+json_file: model/pubs.modelspec.json
+licence: MIT
+maintainers:
+  - trakhimenok
