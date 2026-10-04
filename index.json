@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:f010e4779ef6d0985f4c047accacbd51bb4669868dfe6f78fd55af71a536febc",
+  "checksum": "sha256:2ebc006d995c04b4651bb2a423cff9e1c223054c163f6fa3c567579375acd57b",
   "models": [
     {
       "id": "chinook",
@@ -530,7 +530,7 @@
       "homepage": "https://northwind.demodb.dev/model/",
       "address": "modelspec://github.com/demo-db/northwind/northwind",
       "repository": "https://github.com/demo-db/northwind",
-      "commit": "8e9755ae30bb99f15601a7dd3833199f59d37035",
+      "commit": "3253072905253d3815dd5a3a2b94f8f257522424",
       "module": "northwind",
       "module_id": "github.com/demo-db/northwind/northwind",
       "module_version": "0.1.0",
