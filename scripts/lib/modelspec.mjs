@@ -248,8 +248,13 @@ export function validateModel(json) {
     for (const [field, member] of Object.entries(component.fields ?? {})) checkMember(`${name}.${field}`, member);
   }
   for (const [name, entity] of Object.entries(json.entities ?? {})) {
-    if (!Array.isArray(entity.key) || entity.key.length === 0) problems.push(`entity ${name} needs a key`);
-    for (const keyProperty of entity.key ?? []) if (!Object.hasOwn(entity.properties ?? {}, keyProperty)) problems.push(`entity ${name} key ${keyProperty} is not a property`);
+    if (entity.key !== undefined && (!Array.isArray(entity.key) || entity.key.length === 0)) problems.push(`entity ${name} key must be a non-empty list when present`);
+    const keys = new Set();
+    for (const keyProperty of Array.isArray(entity.key) ? entity.key : []) {
+      if (keys.has(keyProperty)) problems.push(`entity ${name} key ${keyProperty} is duplicated`);
+      keys.add(keyProperty);
+      if (!Object.hasOwn(entity.properties ?? {}, keyProperty)) problems.push(`entity ${name} key ${keyProperty} is not a property`);
+    }
     for (const used of entity.use ?? []) if (!resolves(used, 'components')) problems.push(unresolved(`entity ${name}`, 'component', used));
     for (const [property, member] of Object.entries(entity.properties ?? {})) checkMember(`${name}.${property}`, member);
   }

@@ -812,7 +812,9 @@ test('a JSON AST that breaks the structural checks of the ModelSpec specificatio
     ['entity-no-properties', (json) => { delete json.entities.Artist.properties; }, /entities Artist must be an object with properties/],
     ['property-not-object', (json) => { json.entities.Artist.properties.Name = 'string'; }, /Artist\.Name must be an object/],
     ['key-not-list', (json) => { json.entities.Artist.key = 'ArtistId'; }, /entity Artist key must be a list of property names/],
-    ['no-key', (json) => { delete json.entities.Artist.key; }, /entity Artist needs a key/],
+    ['key-not-list-number', (json) => { json.entities.Artist.key = 7; }, /entity Artist key must be a list of property names/],
+    ['empty-key', (json) => { json.entities.Artist.key = []; }, /entity Artist key must be a non-empty list when present/],
+    ['duplicate-key-property', (json) => { json.entities.Artist.key = ['ArtistId', 'ArtistId']; }, /entity Artist key ArtistId is duplicated/],
     ['key-not-property', (json) => { json.entities.Artist.key = ['Nope']; }, /entity Artist key Nope is not a property/],
     ['unknown-entity', (json) => { json.entities.Album.properties.ArtistId.entity = 'Nope'; }, /Album\.ArtistId references unknown entity Nope/],
     ['unknown-type', (json) => { json.entities.Artist.properties.Name.type = 'varchar'; }, /Artist\.Name has unsupported type "varchar"/],
@@ -833,6 +835,18 @@ test('a JSON AST that breaks the structural checks of the ModelSpec specificatio
     expectProblem(problems, pattern);
     assert.match(problems[0], /^models\/\$records\/fixture\.yaml: /);
   }
+});
+
+test('the registry accepts entities without a declared key and does not invent one', () => {
+  const hcl = 'entity "HeapRow" {\n  property "value" {\n    type = "string"\n  }\n}\n';
+  const json = jsonFor('keyless-entity', hcl);
+  assert.equal(Object.hasOwn(json.entities.HeapRow, 'key'), false);
+  assert.deepEqual(validateModel(json), []);
+  assert.deepEqual(describeModel(parseHcl(hcl)).entities, [{ name: 'HeapRow', key: [], use: [], properties: [{ name: 'value', type: 'string', required: false, key: false }] }]);
+
+  const malformed = structuredClone(json);
+  malformed.entities.HeapRow.key = [];
+  assert.match(validateModel(malformed).join('\n'), /entity HeapRow key must be a non-empty list when present/);
 });
 
 test('the module the files declare must be the module in the record and the address', () => {

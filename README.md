@@ -214,6 +214,8 @@ model in one file, format `modelspec-registry/draft-1`:
   embedded component (`type` is `component` and `component` names it).
 - `required` and `key` say whether the property is required and whether it is
   part of the entity's key.
+- An entity may have no key when the model does not assert stable record
+  identity; the index represents this as `key: []` and marks no property as a key.
 - `use` lists the components an entity embeds, and `components` lists each
   component the model declares with its `fields` (each with `name`, `type`,
   `references` or `component`, and `required`), so a page can show the fields
