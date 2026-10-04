@@ -172,7 +172,7 @@ test('the committed records are well formed and the committed index.json is cons
   const committed = readRegistry(root);
   assert.deepEqual(committed.problems, []);
   assert.deepEqual(recordProblems(committed), []);
-  assert.deepEqual(committed.models.map((model) => model.key), ['chinook']);
+  assert.deepEqual(committed.models.map((model) => model.key), ['chinook', 'northwind']);
   const { data } = committed.models[0];
   assert.equal(data.address, 'modelspec://github.com/datatug/chinookdb/chinook');
   assert.equal(data.repository, 'https://github.com/datatug/chinookdb');
