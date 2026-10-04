@@ -154,7 +154,7 @@ export function recordProblems({ models, maintainers, columns }) {
 
 // Licence texts the check recognises in a repository's LICENSE files.
 const licenceTexts = [
-  ['MIT', /^\s*MIT License/m],
+  ['MIT', /^\s*(?:The )?MIT License\b/m],
   ['CC0-1.0', /CC0 1\.0 Universal/],
   ['Apache-2.0', /Apache License\s+Version 2\.0/],
   ['CC-BY-4.0', /Attribution 4\.0 International/],
