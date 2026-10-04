@@ -189,7 +189,8 @@ test('the committed records are well formed and the committed index.json is cons
   const index = JSON.parse(readFileSync(join(root, 'index.json'), 'utf8'));
   assert.equal(index.format, 'modelspec-registry/draft-1');
   assert.equal(index.checksum, `sha256:${createHash('sha256').update(JSON.stringify(index.models)).digest('hex')}`);
-  const [chinook] = index.models;
+  const chinook = index.models.find((model) => model.id === 'chinook');
+  assert.ok(chinook, 'the Chinook provider appears in the generated index');
   assert.deepEqual([chinook.id, chinook.address, chinook.repository, chinook.commit, chinook.licence], ['chinook', data.address, data.repository, data.commit, 'MIT']);
   assert.deepEqual(chinook.files, { source: data.source_file, json: data.json_file });
   assert.equal(chinook.homepage, data.homepage);

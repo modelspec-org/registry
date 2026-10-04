@@ -1,0 +1,17 @@
+format: modelspec-registry/draft-1
+title: Employees (browser edition)
+description: >-
+  The ModelSpec for a reproducible browser-sized edition of the MySQL Employees
+  sample. It describes the six native tables and their declared primary and
+  composite keys without inventing identities.
+status: draft
+homepage: https://demodb.dev/employees/
+address: modelspec://github.com/demo-db/employees/employees
+repository: https://github.com/demo-db/employees
+commit: 2455bb327aa8444ec496d36e2fe6dcacfc58dc0a
+module: employees
+source_file: model/employees.modelspec.hcl
+json_file: model/employees.modelspec.json
+licence: CC-BY-SA-3.0
+maintainers:
+  - trakhimenok
