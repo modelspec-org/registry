@@ -8,7 +8,7 @@ the JSON AST), its licence and its maintainers.
 | Id | Address | Repository at commit | Status |
 |---|---|---|---|
 | `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@184f9ee](https://github.com/demo-db/chinook/tree/184f9ee22101f8f56016c7963d18a406beffa013) | draft |
-| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@8e9755a](https://github.com/demo-db/northwind/tree/8e9755ae30bb99f15601a7dd3833199f59d37035) | draft |
+| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@3253072](https://github.com/demo-db/northwind/tree/3253072905253d3815dd5a3a2b94f8f257522424) | draft |
 
 Browse it at <https://modelspec.org/registry/> (being built; not live yet).
 This repository is the data behind that page.
