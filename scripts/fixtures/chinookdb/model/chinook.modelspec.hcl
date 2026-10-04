@@ -1,4 +1,4 @@
-# Licence: MIT (https://github.com/datatug/chinookdb/blob/main/LICENSE).
+# Licence: MIT (https://github.com/demo-db/chinook/blob/main/LICENSE).
 # The model restates the schema of the Chinook Database, Copyright (c) 2008-2024
 # Luis Rocha, MIT (https://github.com/lerocha/chinook-database/blob/master/LICENSE.md),
 # so that notice applies to it too. The meaning file chinook.meaning.yaml is CC0-1.0.

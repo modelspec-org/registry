@@ -7,7 +7,8 @@ the JSON AST), its licence and its maintainers.
 
 | Id | Address | Repository at commit | Status |
 |---|---|---|---|
-| `chinook` | `modelspec://github.com/datatug/chinookdb/chinook` | [datatug/chinookdb@f0c71b9](https://github.com/datatug/chinookdb/tree/f0c71b959bd082c3ec495df5fbecb4af014d6d12) | draft |
+| `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@184f9ee](https://github.com/demo-db/chinook/tree/184f9ee22101f8f56016c7963d18a406beffa013) | draft |
+| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@8e9755a](https://github.com/demo-db/northwind/tree/8e9755ae30bb99f15601a7dd3833199f59d37035) | draft |
 
 Browse it at <https://modelspec.org/registry/> (being built; not live yet).
 This repository is the data behind that page.
@@ -23,7 +24,7 @@ possible:
   eleven entities again, a new project looks the address up, reads the two
   files at the pinned commit and starts from them.
 - **Show that several databases are the same model.** If two hosters each
-  serve a database of Chinook, and both name `modelspec://github.com/datatug/chinookdb/chinook`
+  serve a database of Chinook, and both name `modelspec://github.com/demo-db/chinook/chinook`
   at the same commit, anyone can see they share a model without comparing the
   databases field by field.
 - **Run many isolated databases of one model.** One engine, such as an
@@ -80,7 +81,7 @@ Ways to read it:
 - **Plain files.** Fetch `models/$records/<id>.yaml`, or `index.json` for
   everything at once.
 - **The inGitDB CLI**, in a clone:
-  `ingitdb select --path . --from models --where 'address==modelspec://github.com/datatug/chinookdb/chinook' --fields '$id,repository,commit'`
+  `ingitdb select --path . --from models --where 'address==modelspec://github.com/demo-db/chinook/chinook' --fields '$id,repository,commit'`
 - **Go, through [DALgo](https://github.com/dal-go/dalgo)**, with the
   [`dalgo2ingitdb`](https://github.com/ingitdb/dalgo2ingitdb) adapter.
 
@@ -121,10 +122,10 @@ Keyed by GitHub handle, with a `name`.
 ### Addresses
 
 The address is `modelspec://` and the repository without `https://`, then `/`
-and the module: `https://github.com/datatug/chinookdb` and the module `chinook`
-make `modelspec://github.com/datatug/chinookdb/chinook`. A model is pinned the
+and the module: `https://github.com/demo-db/chinook` and the module `chinook`
+make `modelspec://github.com/demo-db/chinook/chinook`. A model is pinned the
 way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and an
-entity of it is `modelspec://github.com/datatug/chinookdb/chinook.Invoice`.
+entity of it is `modelspec://github.com/demo-db/chinook/chinook.Invoice`.
 That grammar is not invented here: `meaning/draft-1`
 ([`FORMAT.md` of `meaninggraph/core`](https://github.com/meaninggraph/core/blob/main/FORMAT.md))
 already reserves `modelspec://{host}/{org}/{repo}/{module}.{Entity}` for a
@@ -137,7 +138,7 @@ ModelSpec itself names a module with `module.id`, a string it says should be
 keeps URLs out of the language). The registry therefore adds a rule, not a
 conflict: the files' `module.name` is the record's `module`, and `module.id`
 starts with `{host}/{org}/{repo}/` and ends with `/{module}`. Chinook's is
-`github.com/datatug/chinookdb/model/chinook`: the directory the files live in
+`github.com/demo-db/chinook/model/chinook`: the directory the files live in
 sits between the repository and the module and is not part of the address.
 Draft 1 registers every model once, under one address.
 
@@ -183,12 +184,12 @@ model in one file, format `modelspec-registry/draft-1`:
     "title": "Chinook music store",
     "description": "…",
     "status": "draft",
-    "homepage": "https://chinookdb.com/model/",
-    "address": "modelspec://github.com/datatug/chinookdb/chinook",
-    "repository": "https://github.com/datatug/chinookdb",
-    "commit": "f0c71b959bd082c3ec495df5fbecb4af014d6d12",
+    "homepage": "https://chinook.demodb.dev/model/",
+    "address": "modelspec://github.com/demo-db/chinook/chinook",
+    "repository": "https://github.com/demo-db/chinook",
+    "commit": "184f9ee22101f8f56016c7963d18a406beffa013",
     "module": "chinook",
-    "module_id": "github.com/datatug/chinookdb/model/chinook",
+    "module_id": "github.com/demo-db/chinook/model/chinook",
     "module_version": "0.1.0",
     "modelspec": "1.0-draft",
     "licence": "MIT",

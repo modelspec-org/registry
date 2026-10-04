@@ -174,12 +174,12 @@ test('the committed records are well formed and the committed index.json is cons
   assert.deepEqual(recordProblems(committed), []);
   assert.deepEqual(committed.models.map((model) => model.key), ['chinook', 'northwind']);
   const { data } = committed.models[0];
-  assert.equal(data.address, 'modelspec://github.com/datatug/chinookdb/chinook');
-  assert.equal(data.repository, 'https://github.com/datatug/chinookdb');
-  assert.equal(data.commit, 'f0c71b959bd082c3ec495df5fbecb4af014d6d12');
+  assert.equal(data.address, 'modelspec://github.com/demo-db/chinook/chinook');
+  assert.equal(data.repository, 'https://github.com/demo-db/chinook');
+  assert.equal(data.commit, '184f9ee22101f8f56016c7963d18a406beffa013');
   assert.equal(data.module, 'chinook');
   assert.equal(data.status, 'draft');
-  assert.equal(data.homepage, 'https://chinookdb.com/model/');
+  assert.equal(data.homepage, 'https://chinook.demodb.dev/model/');
   assert.deepEqual([data.source_file, data.json_file], ['model/chinook.modelspec.hcl', 'model/chinook.modelspec.json']);
   assert.ok(wellFormed(committed.models[0]));
   const index = JSON.parse(readFileSync(join(root, 'index.json'), 'utf8'));
@@ -199,12 +199,12 @@ test('the real Chinook model files pass every model check', () => {
   const record = fixtureRecord(source, { address: `modelspec://example.test/fixtures/chinook-real/chinook`, module: 'chinook', source_file: 'model/chinook.modelspec.hcl', json_file: 'model/chinook.modelspec.json' });
   // The fixture's module.id names the real repository, so the real files are
   // checked as that repository: a record for it, served from the local copy.
-  origins.set('https://github.com/datatug/chinookdb', origins.get(source.repository));
-  const real = { ...record, address: 'modelspec://github.com/datatug/chinookdb/chinook', repository: 'https://github.com/datatug/chinookdb' };
+  origins.set('https://github.com/demo-db/chinook', origins.get(source.repository));
+  const real = { ...record, address: 'modelspec://github.com/demo-db/chinook/chinook', repository: 'https://github.com/demo-db/chinook' };
   const dir = registry({ chinook: real });
   const { problems, entries } = loadModels(options(dir));
   assert.deepEqual(problems, []);
-  assert.equal(json.module.id, 'github.com/datatug/chinookdb/model/chinook');
+  assert.equal(json.module.id, 'github.com/demo-db/chinook/model/chinook');
   assert.deepEqual(entries[0].entities.map((entity) => entity.name), ['Artist', 'Album', 'Track', 'Genre', 'MediaType', 'Playlist', 'PlaylistTrack', 'Customer', 'Employee', 'Invoice', 'InvoiceLine']);
   assert.deepEqual(check(dir).problems, []);
 });
@@ -342,7 +342,7 @@ test('a homepage is optional: with one it is checked and indexed, without one th
 
 // What a homepage is allowed to be, as README.md states it for index.json.
 const legitimateHomepages = [
-  'https://chinookdb.com/model/',
+  'https://chinook.demodb.dev/model/',
   'https://example.com/',
   'https://models.example.com/fixture/',
   'https://github.com/datatug/chinookdb/',

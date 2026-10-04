@@ -1,7 +1,7 @@
 {
   "modelspec": "1.0-draft",
   "module": {
-    "id": "github.com/datatug/chinookdb/model/chinook",
+    "id": "github.com/demo-db/chinook/model/chinook",
     "name": "chinook",
     "version": "0.1.0"
   },
