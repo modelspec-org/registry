@@ -211,7 +211,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.ok(sakila, 'the Sakila provider has a committed model record');
   assert.deepEqual(
     [sakila.data.address, sakila.data.repository, sakila.data.commit, sakila.data.module, sakila.data.licence],
-    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', '0cb13fd76b2ce590f68efa99a6fbf7effcf6e4ce', 'sakila', 'BSD-3-Clause'],
+    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', '6567d30aec1592fe0917934a8bbe74ff70b04b01', 'sakila', 'BSD-3-Clause'],
   );
   const sakilaIndex = index.models.find((model) => model.id === 'sakila');
   assert.ok(sakilaIndex, 'the Sakila provider appears in the generated index');
@@ -978,6 +978,12 @@ test('licences: the record must state the licence the files carry', () => {
   const bsdTwin = modelOrigin('licence-bsd-twin', { hcl: bsdHcl });
   assert.deepEqual(problemsOf(bsdTwin, { licence: 'BSD-3-Clause' }), [], 'the JSON twin inherits the explicit HCL licence');
   expectProblem(problemsOf(bsdTwin, { licence: 'MIT' }), /licence is MIT, but model\/fixture\.modelspec\.hcl declares BSD-3-Clause/);
+  const mismatchedJson = jsonFor('licence-bsd-mismatched-twin', bsdHcl);
+  mismatchedJson.entities.Artist.properties.Name.max_len = 100;
+  const mismatchedTwin = modelOrigin('licence-bsd-mismatched-twin', { hcl: bsdHcl, json: mismatchedJson });
+  const mismatchedProblems = problemsOf(mismatchedTwin, { licence: 'BSD-3-Clause' });
+  expectProblem(mismatchedProblems, /does not match model\/fixture\.modelspec\.hcl/);
+  expectProblem(mismatchedProblems, /licence is BSD-3-Clause, but model\/fixture\.modelspec\.json declares no licence and the repository's default licence \(its LICENSE file\) is MIT/);
 
   // The HCL declares nothing: it takes the repository's default, like the JSON.
   const undeclared = fixtureHcl.replace('# Licence: MIT\n', '');

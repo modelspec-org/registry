@@ -268,9 +268,11 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
   // The JSON AST is what the HCL source says. There is no ModelSpec tool that
   // does this yet; see scripts/lib/modelspec.mjs for what is compared.
   let document;
+  let hclJsonTwin = false;
   try {
     document = parseHcl(texts.source_file);
     const differences = astDifferences(toModelspecJson(document, ast.module), ast);
+    hclJsonTwin = differences.length === 0;
     for (const difference of differences.slice(0, maxDifferences)) problems.push(`${file}: ${data.json_file} does not match ${data.source_file}: ${difference}`);
     if (differences.length > maxDifferences) problems.push(`${file}: ${data.json_file} does not match ${data.source_file}: ${differences.length - maxDifferences} more differences`);
   } catch (error) { problems.push(`${file}: ${data.source_file}: ${error.message}`); }
@@ -278,7 +280,7 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
   try {
     const hclLicence = declaredLicence(texts.source_file);
     problems.push(...licenceProblems(file, view, data.source_file, hclLicence, data.licence));
-    problems.push(...licenceProblems(file, view, data.json_file, hclLicence, data.licence));
+    problems.push(...licenceProblems(file, view, data.json_file, hclJsonTwin ? hclLicence : null, data.licence));
   } catch (error) { problems.push(`${file}: licence: ${lastLine(error)}`); }
 
   if (problems.length > 0) return { problems };

@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:e3baf779903e2345eced925280adb7ad0d75021dbf926c43e5201fb02502fb7e",
+  "checksum": "sha256:ae9a3984f0fc8df9ff01daacc1baf9b271cc8507c301771d62472c6f69d168f4",
   "models": [
     {
       "id": "chinook",
@@ -1216,7 +1216,7 @@
       "homepage": "https://pubs.demodb.dev/model/",
       "address": "modelspec://github.com/demo-db/pubs/pubs",
       "repository": "https://github.com/demo-db/pubs",
-      "commit": "34501946b0478b7e2ae13c15b4c57019109b5edc",
+      "commit": "6c06c5c7395b03ff1a02c2b1a21485add3e1b65b",
       "module": "pubs",
       "module_id": "github.com/demo-db/pubs/pubs",
       "module_version": "0.1.0",
@@ -1716,6 +1716,739 @@
             },
             {
               "name": "pubdate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
+    {
+      "id": "sakila",
+      "title": "Sakila video rental sample",
+      "description": "The MySQL Sakila sample model for films, actors, customers, rentals, payments, stores and staff, represented by its 16 native table entities.",
+      "status": "draft",
+      "homepage": "https://sakila.demodb.dev/model/",
+      "address": "modelspec://github.com/demo-db/sakila/sakila",
+      "repository": "https://github.com/demo-db/sakila",
+      "commit": "6567d30aec1592fe0917934a8bbe74ff70b04b01",
+      "module": "sakila",
+      "module_id": "github.com/demo-db/sakila/sakila",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "BSD-3-Clause",
+      "files": {
+        "source": "model/sakila.modelspec.hcl",
+        "json": "model/sakila.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "actor",
+          "key": [
+            "actor_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "actor_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "first_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "address",
+          "key": [
+            "address_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "address_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "address",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "address2",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "district",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "city_id",
+              "type": "reference",
+              "references": "city",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "postal_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "phone",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "location",
+              "type": "document",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "category",
+          "key": [
+            "category_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "category_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "city",
+          "key": [
+            "city_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "city_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "city",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "country_id",
+              "type": "reference",
+              "references": "country",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "country",
+          "key": [
+            "country_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "country_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "country",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "customer",
+          "key": [
+            "customer_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "customer_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "store_id",
+              "type": "reference",
+              "references": "store",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "first_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "address_id",
+              "type": "reference",
+              "references": "address",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "active",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "create_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "film",
+          "key": [
+            "film_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "film_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "release_year",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "language_id",
+              "type": "reference",
+              "references": "language",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "original_language_id",
+              "type": "reference",
+              "references": "language",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rental_duration",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rental_rate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "length",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "replacement_cost",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rating",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "special_features",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "film_actor",
+          "key": [
+            "actor_id",
+            "film_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "actor_id",
+              "type": "reference",
+              "references": "actor",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "film_id",
+              "type": "reference",
+              "references": "film",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "film_category",
+          "key": [
+            "film_id",
+            "category_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "film_id",
+              "type": "reference",
+              "references": "film",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "category_id",
+              "type": "reference",
+              "references": "category",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "film_text",
+          "key": [
+            "film_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "film_id",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "inventory",
+          "key": [
+            "inventory_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "inventory_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "film_id",
+              "type": "reference",
+              "references": "film",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "store_id",
+              "type": "reference",
+              "references": "store",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "language",
+          "key": [
+            "language_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "language_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "payment",
+          "key": [
+            "payment_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "payment_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "customer_id",
+              "type": "reference",
+              "references": "customer",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "staff_id",
+              "type": "reference",
+              "references": "staff",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rental_id",
+              "type": "reference",
+              "references": "rental",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "amount",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "payment_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "rental",
+          "key": [
+            "rental_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "rental_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "rental_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "inventory_id",
+              "type": "reference",
+              "references": "inventory",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "customer_id",
+              "type": "reference",
+              "references": "customer",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "return_date",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "staff_id",
+              "type": "reference",
+              "references": "staff",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "staff",
+          "key": [
+            "staff_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "staff_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "first_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "address_id",
+              "type": "reference",
+              "references": "address",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "picture",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "store_id",
+              "type": "reference",
+              "references": "store",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "active",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "username",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "password",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "last_update",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "store",
+          "key": [
+            "store_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "store_id",
+              "type": "int",
+              "required": false,
+              "key": true
+            },
+            {
+              "name": "manager_staff_id",
+              "type": "reference",
+              "references": "staff",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "address_id",
+              "type": "reference",
+              "references": "address",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_update",
               "type": "string",
               "required": true,
               "key": false
