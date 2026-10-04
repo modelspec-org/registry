@@ -1,7 +1,3709 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:ae9a3984f0fc8df9ff01daacc1baf9b271cc8507c301771d62472c6f69d168f4",
+  "checksum": "sha256:6943b507f49b2b3987d75c8f16b76d3ed2bbf1a9e04a96575386875117723391",
   "models": [
+    {
+      "id": "adventureworks",
+      "title": "AdventureWorks OLTP",
+      "description": "The ModelSpec for Microsoft's AdventureWorks OLTP sample, derived from the pinned SQL Server 2025 sample installer fixture. It describes the source tables and properties as a reusable model for copies of this database.",
+      "status": "draft",
+      "homepage": "https://demodb.dev/adventureworks/",
+      "address": "modelspec://github.com/demo-db/adventureworks/adventureworks",
+      "repository": "https://github.com/demo-db/adventureworks",
+      "commit": "cd8dcdf2079fe31480ad6d6c024b8c17cb91beea",
+      "module": "adventureworks",
+      "module_id": "github.com/demo-db/adventureworks/adventureworks",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "MIT",
+      "files": {
+        "source": "model/adventureworks.modelspec.hcl",
+        "json": "model/adventureworks.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "HumanResources_Department",
+          "key": [
+            "DepartmentID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "DepartmentID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "GroupName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "HumanResources_Employee",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "NationalIDNumber",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "LoginID",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OrganizationNode",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "OrganizationLevel",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "JobTitle",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "BirthDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "MaritalStatus",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Gender",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "HireDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalariedFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "VacationHours",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SickLeaveHours",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CurrentFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "HumanResources_EmployeeDepartmentHistory",
+          "key": [
+            "BusinessEntityID",
+            "StartDate",
+            "DepartmentID",
+            "ShiftID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "HumanResources_Employee",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "DepartmentID",
+              "type": "reference",
+              "references": "HumanResources_Department",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ShiftID",
+              "type": "reference",
+              "references": "HumanResources_Shift",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "HumanResources_EmployeePayHistory",
+          "key": [
+            "BusinessEntityID",
+            "RateChangeDate"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "HumanResources_Employee",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "RateChangeDate",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Rate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "PayFrequency",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "HumanResources_JobCandidate",
+          "key": [
+            "JobCandidateID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "JobCandidateID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "HumanResources_Employee",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Resume",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "HumanResources_Shift",
+          "key": [
+            "ShiftID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ShiftID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StartTime",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EndTime",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_Address",
+          "key": [
+            "AddressID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "AddressID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "AddressLine1",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "AddressLine2",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "City",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StateProvinceID",
+              "type": "reference",
+              "references": "Person_StateProvince",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "PostalCode",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SpatialLocation",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_AddressType",
+          "key": [
+            "AddressTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "AddressTypeID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_BusinessEntity",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_BusinessEntityAddress",
+          "key": [
+            "BusinessEntityID",
+            "AddressID",
+            "AddressTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_BusinessEntity",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "AddressID",
+              "type": "reference",
+              "references": "Person_Address",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "AddressTypeID",
+              "type": "reference",
+              "references": "Person_AddressType",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_BusinessEntityContact",
+          "key": [
+            "BusinessEntityID",
+            "PersonID",
+            "ContactTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_BusinessEntity",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PersonID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ContactTypeID",
+              "type": "reference",
+              "references": "Person_ContactType",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_ContactType",
+          "key": [
+            "ContactTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ContactTypeID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_CountryRegion",
+          "key": [
+            "CountryRegionCode"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CountryRegionCode",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_EmailAddress",
+          "key": [
+            "BusinessEntityID",
+            "EmailAddressID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "EmailAddressID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "EmailAddress",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_Password",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PasswordHash",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "PasswordSalt",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_Person",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_BusinessEntity",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PersonType",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "NameStyle",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "FirstName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "MiddleName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "LastName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Suffix",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "EmailPromotion",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "AdditionalContactInfo",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Demographics",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_PersonPhone",
+          "key": [
+            "BusinessEntityID",
+            "PhoneNumber",
+            "PhoneNumberTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PhoneNumber",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PhoneNumberTypeID",
+              "type": "reference",
+              "references": "Person_PhoneNumberType",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_PhoneNumberType",
+          "key": [
+            "PhoneNumberTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "PhoneNumberTypeID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Person_StateProvince",
+          "key": [
+            "StateProvinceID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "StateProvinceID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "StateProvinceCode",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CountryRegionCode",
+              "type": "reference",
+              "references": "Person_CountryRegion",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "IsOnlyStateProvinceFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TerritoryID",
+              "type": "reference",
+              "references": "Sales_SalesTerritory",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_BillOfMaterials",
+          "key": [
+            "BillOfMaterialsID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BillOfMaterialsID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductAssemblyID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ComponentID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "UnitMeasureCode",
+              "type": "reference",
+              "references": "Production_UnitMeasure",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "BOMLevel",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "PerAssemblyQty",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_Culture",
+          "key": [
+            "CultureID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CultureID",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_Document",
+          "key": [
+            "DocumentNode"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "DocumentNode",
+              "type": "document",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "DocumentLevel",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Owner",
+              "type": "reference",
+              "references": "HumanResources_Employee",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "FolderFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "FileName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "FileExtension",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Revision",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ChangeNumber",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Status",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "DocumentSummary",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Document",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_Illustration",
+          "key": [
+            "IllustrationID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "IllustrationID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Diagram",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_Location",
+          "key": [
+            "LocationID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "LocationID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CostRate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Availability",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_Product",
+          "key": [
+            "ProductID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ProductNumber",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "MakeFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "FinishedGoodsFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Color",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "SafetyStockLevel",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReorderPoint",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StandardCost",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ListPrice",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Size",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "SizeUnitMeasureCode",
+              "type": "reference",
+              "references": "Production_UnitMeasure",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "WeightUnitMeasureCode",
+              "type": "reference",
+              "references": "Production_UnitMeasure",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Weight",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "DaysToManufacture",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ProductLine",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Class",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Style",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ProductSubcategoryID",
+              "type": "reference",
+              "references": "Production_ProductSubcategory",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ProductModelID",
+              "type": "reference",
+              "references": "Production_ProductModel",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "SellStartDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SellEndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "DiscontinuedDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductCategory",
+          "key": [
+            "ProductCategoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductCategoryID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductCostHistory",
+          "key": [
+            "ProductID",
+            "StartDate"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "StandardCost",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductDescription",
+          "key": [
+            "ProductDescriptionID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductDescriptionID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Description",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductDocument",
+          "key": [
+            "ProductID",
+            "DocumentNode"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "DocumentNode",
+              "type": "reference",
+              "references": "Production_Document",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductInventory",
+          "key": [
+            "ProductID",
+            "LocationID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "LocationID",
+              "type": "reference",
+              "references": "Production_Location",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Shelf",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Bin",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductListPriceHistory",
+          "key": [
+            "ProductID",
+            "StartDate"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ListPrice",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductModel",
+          "key": [
+            "ProductModelID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductModelID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CatalogDescription",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Instructions",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductModelIllustration",
+          "key": [
+            "ProductModelID",
+            "IllustrationID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductModelID",
+              "type": "reference",
+              "references": "Production_ProductModel",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "IllustrationID",
+              "type": "reference",
+              "references": "Production_Illustration",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductModelProductDescriptionCulture",
+          "key": [
+            "ProductModelID",
+            "ProductDescriptionID",
+            "CultureID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductModelID",
+              "type": "reference",
+              "references": "Production_ProductModel",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductDescriptionID",
+              "type": "reference",
+              "references": "Production_ProductDescription",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CultureID",
+              "type": "reference",
+              "references": "Production_Culture",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductPhoto",
+          "key": [
+            "ProductPhotoID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductPhotoID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ThumbNailPhoto",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ThumbnailPhotoFileName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "LargePhoto",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "LargePhotoFileName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductProductPhoto",
+          "key": [
+            "ProductID",
+            "ProductPhotoID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductPhotoID",
+              "type": "reference",
+              "references": "Production_ProductPhoto",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Primary",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductReview",
+          "key": [
+            "ProductReviewID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductReviewID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReviewerName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReviewDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EmailAddress",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Rating",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Comments",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ProductSubcategory",
+          "key": [
+            "ProductSubcategoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductSubcategoryID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductCategoryID",
+              "type": "reference",
+              "references": "Production_ProductCategory",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_ScrapReason",
+          "key": [
+            "ScrapReasonID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ScrapReasonID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_TransactionHistory",
+          "key": [
+            "TransactionID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "TransactionID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReferenceOrderID",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReferenceOrderLineID",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TransactionDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TransactionType",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ActualCost",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_TransactionHistoryArchive",
+          "key": [
+            "TransactionID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "TransactionID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReferenceOrderID",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReferenceOrderLineID",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TransactionDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TransactionType",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ActualCost",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_UnitMeasure",
+          "key": [
+            "UnitMeasureCode"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "UnitMeasureCode",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_WorkOrder",
+          "key": [
+            "WorkOrderID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "WorkOrderID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OrderQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StockedQty",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ScrappedQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "DueDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ScrapReasonID",
+              "type": "reference",
+              "references": "Production_ScrapReason",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Production_WorkOrderRouting",
+          "key": [
+            "WorkOrderID",
+            "ProductID",
+            "OperationSequence"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "WorkOrderID",
+              "type": "reference",
+              "references": "Production_WorkOrder",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "OperationSequence",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "LocationID",
+              "type": "reference",
+              "references": "Production_Location",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ScheduledStartDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ScheduledEndDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ActualStartDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ActualEndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ActualResourceHrs",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "PlannedCost",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ActualCost",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Purchasing_ProductVendor",
+          "key": [
+            "ProductID",
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Purchasing_Vendor",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "AverageLeadTime",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StandardPrice",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "LastReceiptCost",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "LastReceiptDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "MinOrderQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "MaxOrderQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OnOrderQty",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "UnitMeasureCode",
+              "type": "reference",
+              "references": "Production_UnitMeasure",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Purchasing_PurchaseOrderDetail",
+          "key": [
+            "PurchaseOrderID",
+            "PurchaseOrderDetailID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "PurchaseOrderID",
+              "type": "reference",
+              "references": "Purchasing_PurchaseOrderHeader",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PurchaseOrderDetailID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "DueDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OrderQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "UnitPrice",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "LineTotal",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ReceivedQty",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "RejectedQty",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StockedQty",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Purchasing_PurchaseOrderHeader",
+          "key": [
+            "PurchaseOrderID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "PurchaseOrderID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "RevisionNumber",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Status",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EmployeeID",
+              "type": "reference",
+              "references": "HumanResources_Employee",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "VendorID",
+              "type": "reference",
+              "references": "Purchasing_Vendor",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipMethodID",
+              "type": "reference",
+              "references": "Purchasing_ShipMethod",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OrderDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "SubTotal",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TaxAmt",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Freight",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TotalDue",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Purchasing_ShipMethod",
+          "key": [
+            "ShipMethodID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ShipMethodID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipBase",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipRate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Purchasing_Vendor",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_BusinessEntity",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "AccountNumber",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CreditRating",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "PreferredVendorStatus",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ActiveFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "PurchasingWebServiceURL",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_CountryRegionCurrency",
+          "key": [
+            "CountryRegionCode",
+            "CurrencyCode"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CountryRegionCode",
+              "type": "reference",
+              "references": "Person_CountryRegion",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CurrencyCode",
+              "type": "reference",
+              "references": "Sales_Currency",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_CreditCard",
+          "key": [
+            "CreditCardID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CreditCardID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CardType",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CardNumber",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ExpMonth",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ExpYear",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_Currency",
+          "key": [
+            "CurrencyCode"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CurrencyCode",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_CurrencyRate",
+          "key": [
+            "CurrencyRateID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CurrencyRateID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CurrencyRateDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "FromCurrencyCode",
+              "type": "reference",
+              "references": "Sales_Currency",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ToCurrencyCode",
+              "type": "reference",
+              "references": "Sales_Currency",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "AverageRate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EndOfDayRate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_Customer",
+          "key": [
+            "CustomerID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CustomerID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PersonID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "StoreID",
+              "type": "reference",
+              "references": "Sales_Store",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "TerritoryID",
+              "type": "reference",
+              "references": "Sales_SalesTerritory",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "AccountNumber",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_PersonCreditCard",
+          "key": [
+            "BusinessEntityID",
+            "CreditCardID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_Person",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CreditCardID",
+              "type": "reference",
+              "references": "Sales_CreditCard",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesOrderDetail",
+          "key": [
+            "SalesOrderID",
+            "SalesOrderDetailID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SalesOrderID",
+              "type": "reference",
+              "references": "Sales_SalesOrderHeader",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "SalesOrderDetailID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CarrierTrackingNumber",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "OrderQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Sales_SpecialOfferProduct",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SpecialOfferID",
+              "type": "reference",
+              "references": "Sales_SpecialOfferProduct",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "UnitPrice",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "UnitPriceDiscount",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "LineTotal",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesOrderHeader",
+          "key": [
+            "SalesOrderID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SalesOrderID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "RevisionNumber",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OrderDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "DueDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Status",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "OnlineOrderFlag",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesOrderNumber",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "PurchaseOrderNumber",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "AccountNumber",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "CustomerID",
+              "type": "reference",
+              "references": "Sales_Customer",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesPersonID",
+              "type": "reference",
+              "references": "Sales_SalesPerson",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "TerritoryID",
+              "type": "reference",
+              "references": "Sales_SalesTerritory",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "BillToAddressID",
+              "type": "reference",
+              "references": "Person_Address",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipToAddressID",
+              "type": "reference",
+              "references": "Person_Address",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ShipMethodID",
+              "type": "reference",
+              "references": "Purchasing_ShipMethod",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CreditCardID",
+              "type": "reference",
+              "references": "Sales_CreditCard",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "CreditCardApprovalCode",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "CurrencyRateID",
+              "type": "reference",
+              "references": "Sales_CurrencyRate",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "SubTotal",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TaxAmt",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Freight",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TotalDue",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Comment",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesOrderHeaderSalesReason",
+          "key": [
+            "SalesOrderID",
+            "SalesReasonID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SalesOrderID",
+              "type": "reference",
+              "references": "Sales_SalesOrderHeader",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "SalesReasonID",
+              "type": "reference",
+              "references": "Sales_SalesReason",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesPerson",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "HumanResources_Employee",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "TerritoryID",
+              "type": "reference",
+              "references": "Sales_SalesTerritory",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "SalesQuota",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Bonus",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CommissionPct",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesYTD",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesLastYear",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesPersonQuotaHistory",
+          "key": [
+            "BusinessEntityID",
+            "QuotaDate"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Sales_SalesPerson",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "QuotaDate",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "SalesQuota",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesReason",
+          "key": [
+            "SalesReasonID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SalesReasonID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ReasonType",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesTaxRate",
+          "key": [
+            "SalesTaxRateID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SalesTaxRateID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "StateProvinceID",
+              "type": "reference",
+              "references": "Person_StateProvince",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TaxType",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "TaxRate",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesTerritory",
+          "key": [
+            "TerritoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "TerritoryID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CountryRegionCode",
+              "type": "reference",
+              "references": "Person_CountryRegion",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Group",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesYTD",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesLastYear",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CostYTD",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "CostLastYear",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SalesTerritoryHistory",
+          "key": [
+            "BusinessEntityID",
+            "StartDate",
+            "TerritoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Sales_SalesPerson",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "TerritoryID",
+              "type": "reference",
+              "references": "Sales_SalesTerritory",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_ShoppingCartItem",
+          "key": [
+            "ShoppingCartItemID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ShoppingCartItemID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ShoppingCartID",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "DateCreated",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SpecialOffer",
+          "key": [
+            "SpecialOfferID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SpecialOfferID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Description",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "DiscountPct",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Type",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Category",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "StartDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "EndDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "MinQty",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "MaxQty",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_SpecialOfferProduct",
+          "key": [
+            "SpecialOfferID",
+            "ProductID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SpecialOfferID",
+              "type": "reference",
+              "references": "Sales_SpecialOffer",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Production_Product",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Sales_Store",
+          "key": [
+            "BusinessEntityID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "BusinessEntityID",
+              "type": "reference",
+              "references": "Person_BusinessEntity",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SalesPersonID",
+              "type": "reference",
+              "references": "Sales_SalesPerson",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Demographics",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "rowguid",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "dbo_AWBuildVersion",
+          "key": [
+            "SystemInformationID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SystemInformationID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "Database_Version",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "VersionDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ModifiedDate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "dbo_DatabaseLog",
+          "key": [
+            "DatabaseLogID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "DatabaseLogID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "PostTime",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "DatabaseUser",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Event",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Schema",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Object",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "TSQL",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "XmlEvent",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "dbo_ErrorLog",
+          "key": [
+            "ErrorLogID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ErrorLogID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ErrorTime",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "UserName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ErrorNumber",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ErrorSeverity",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ErrorState",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ErrorProcedure",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ErrorLine",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ErrorMessage",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
     {
       "id": "chinook",
       "title": "Chinook music store",
@@ -515,6 +4217,240 @@
               "name": "Quantity",
               "type": "int",
               "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
+    {
+      "id": "employees",
+      "title": "Employees (browser edition)",
+      "description": "The ModelSpec for a reproducible browser-sized edition of the MySQL Employees sample. It describes the six native tables and their declared primary and composite keys without inventing identities.",
+      "status": "draft",
+      "homepage": "https://demodb.dev/employees/",
+      "address": "modelspec://github.com/demo-db/employees/employees",
+      "repository": "https://github.com/demo-db/employees",
+      "commit": "2455bb327aa8444ec496d36e2fe6dcacfc58dc0a",
+      "module": "employees",
+      "module_id": "github.com/demo-db/employees/employees",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "CC-BY-SA-3.0",
+      "files": {
+        "source": "model/employees.modelspec.hcl",
+        "json": "model/employees.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "departments",
+          "key": [
+            "dept_no"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "dept_no",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "dept_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "dept_emp",
+          "key": [
+            "emp_no",
+            "dept_no"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "emp_no",
+              "type": "reference",
+              "references": "employees",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "dept_no",
+              "type": "reference",
+              "references": "departments",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "from_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "to_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "dept_manager",
+          "key": [
+            "emp_no",
+            "dept_no"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "emp_no",
+              "type": "reference",
+              "references": "employees",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "dept_no",
+              "type": "reference",
+              "references": "departments",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "from_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "to_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "employees",
+          "key": [
+            "emp_no"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "emp_no",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "birth_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "first_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "last_name",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "gender",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "hire_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "salaries",
+          "key": [
+            "emp_no",
+            "from_date"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "emp_no",
+              "type": "reference",
+              "references": "employees",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "salary",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "from_date",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "to_date",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "titles",
+          "key": [
+            "emp_no",
+            "title",
+            "from_date"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "emp_no",
+              "type": "reference",
+              "references": "employees",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "from_date",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "to_date",
+              "type": "string",
+              "required": false,
               "key": false
             }
           ]
