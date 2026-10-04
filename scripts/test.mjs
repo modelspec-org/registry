@@ -196,7 +196,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.equal(chinook.entities.length, 11);
   const pubs = committed.models.find((model) => model.key === 'pubs');
   assert.ok(pubs, 'the Pubs provider has a committed model record');
-  assert.equal(pubs.data.commit, '34501946b0478b7e2ae13c15b4c57019109b5edc');
+  assert.equal(pubs.data.commit, '6c06c5c7395b03ff1a02c2b1a21485add3e1b65b');
   assert.equal(pubs.data.module, 'pubs');
   assert.deepEqual([pubs.data.source_file, pubs.data.json_file], ['model/pubs.modelspec.hcl', 'model/pubs.modelspec.json']);
   const pubsIndex = index.models.find((model) => model.id === 'pubs');
@@ -207,6 +207,16 @@ test('the committed records are well formed and the committed index.json is cons
     assert.ok(entity, `${name} remains an entity in the index`);
     assert.deepEqual(entity.key, [], `${name} has no fabricated ModelSpec key`);
   }
+  const sakila = committed.models.find((model) => model.key === 'sakila');
+  assert.ok(sakila, 'the Sakila provider has a committed model record');
+  assert.deepEqual(
+    [sakila.data.address, sakila.data.repository, sakila.data.commit, sakila.data.module, sakila.data.licence],
+    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', '6567d30aec1592fe0917934a8bbe74ff70b04b01', 'sakila', 'BSD-3-Clause'],
+  );
+  const sakilaIndex = index.models.find((model) => model.id === 'sakila');
+  assert.ok(sakilaIndex, 'the Sakila provider appears in the generated index');
+  assert.equal(sakilaIndex.entities.length, 16, 'every physical Sakila table has a model entity');
+  assert.deepEqual(sakilaIndex.files, { source: sakila.data.source_file, json: sakila.data.json_file });
   assert.equal(readFileSync(join(root, 'index.json'), 'utf8'), `${JSON.stringify(index, null, 2)}\n`, 'index.json is written the way buildIndex writes it');
 });
 
@@ -960,27 +970,48 @@ test('licences: the record must state the licence the files carry', () => {
   const source = modelOrigin('licence-differs');
   const problems = problemsOf(source, { licence: 'Apache-2.0' });
   expectProblem(problems, /licence is Apache-2\.0, but model\/fixture\.modelspec\.hcl declares MIT/);
-  expectProblem(problems, /licence is Apache-2\.0, but model\/fixture\.modelspec\.json declares no licence and the repository's default licence \(its LICENSE file\) is MIT/);
+  expectProblem(problems, /licence is Apache-2\.0, but model\/fixture\.modelspec\.json declares MIT/);
+
+  // JSON has no licence field. An explicit HCL declaration applies to its
+  // validated JSON twin even when the repository's code licence is different.
+  const bsdHcl = fixtureHcl.replace('# Licence: MIT', '# SPDX-License-Identifier: BSD-3-Clause');
+  const bsdTwin = modelOrigin('licence-bsd-twin', { hcl: bsdHcl });
+  assert.deepEqual(problemsOf(bsdTwin, { licence: 'BSD-3-Clause' }), [], 'the JSON twin inherits the explicit HCL licence');
+  expectProblem(problemsOf(bsdTwin, { licence: 'MIT' }), /licence is MIT, but model\/fixture\.modelspec\.hcl declares BSD-3-Clause/);
+  const mismatchedJson = jsonFor('licence-bsd-mismatched-twin', bsdHcl);
+  mismatchedJson.entities.Artist.properties.Name.max_len = 100;
+  const mismatchedTwin = modelOrigin('licence-bsd-mismatched-twin', { hcl: bsdHcl, json: mismatchedJson });
+  const mismatchedProblems = problemsOf(mismatchedTwin, { licence: 'BSD-3-Clause' });
+  expectProblem(mismatchedProblems, /does not match model\/fixture\.modelspec\.hcl/);
+  expectProblem(mismatchedProblems, /licence is BSD-3-Clause, but model\/fixture\.modelspec\.json declares no licence and the repository's default licence \(its LICENSE file\) is MIT/);
 
   // The HCL declares nothing: it takes the repository's default, like the JSON.
   const undeclared = fixtureHcl.replace('# Licence: MIT\n', '');
   assert.deepEqual(problemsOf(modelOrigin('licence-default', { hcl: undeclared })), []);
   expectProblem(problemsOf(modelOrigin('licence-default-differs', { hcl: undeclared }), { licence: 'CC0-1.0' }), /licence is CC0-1\.0, but model\/fixture\.modelspec\.hcl declares no licence and the repository's default licence \(its LICENSE file\) is MIT/);
+  assert.deepEqual(
+    problemsOf(modelOrigin('licence-cc-by-sa-default', { hcl: undeclared, licence: 'SPDX-License-Identifier: CC-BY-SA-3.0\n' }), { licence: 'CC-BY-SA-3.0' }),
+    [],
+    'the SPDX license identifier in the repository LICENSE is recognized as the default for both twins',
+  );
 
-  // The HCL declares MIT, but the repository (and so the JSON) is Apache-2.0.
+  // With no HCL declaration, the JSON inherits the repository default.
   const apache = 'Apache License\n Version 2.0, January 2004\n';
-  expectProblem(problemsOf(modelOrigin('licence-json-differs', { licence: apache })), /licence is MIT, but model\/fixture\.modelspec\.json declares no licence and the repository's default licence \(its LICENSE file\) is Apache-2\.0/);
+  const noHclLicence = problemsOf(modelOrigin('licence-json-differs', { hcl: undeclared, licence: apache }));
+  expectProblem(noHclLicence, /licence is MIT, but model\/fixture\.modelspec\.hcl declares no licence and the repository's default licence \(its LICENSE file\) is Apache-2\.0/);
+  expectProblem(noHclLicence, /licence is MIT, but model\/fixture\.modelspec\.json declares no licence and the repository's default licence \(its LICENSE file\) is Apache-2\.0/);
 
-  // No LICENSE file, or one the check does not recognise: the JSON cannot declare one.
-  expectProblem(problemsOf(modelOrigin('licence-none', { licence: null })), /model\/fixture\.modelspec\.json declares no licence, and the repository's LICENSE files name no licence the check recognises; a JSON file cannot declare one/);
-  expectProblem(problemsOf(modelOrigin('licence-unknown', { licence: 'Some custom terms\n' })), /LICENSE file names no licence the check recognises/);
+  // With neither a repository default nor an HCL declaration, both twins need
+  // a recognized source of licence information; the JSON has no licence field.
+  expectProblem(problemsOf(modelOrigin('licence-none', { hcl: undeclared, licence: null })), /model\/fixture\.modelspec\.json declares no licence, and the repository's LICENSE files name no licence the check recognises; a JSON file cannot declare one/);
+  expectProblem(problemsOf(modelOrigin('licence-unknown', { hcl: undeclared, licence: 'Some custom terms\n' })), /LICENSE file names no licence the check recognises/);
   expectProblem(problemsOf(modelOrigin('licence-hcl-none', { hcl: undeclared, licence: null })), /model\/fixture\.modelspec\.hcl declares no licence, and the repository's LICENSE files name no licence the check recognises; the file must declare its licence/);
 
   // Several licence files and no unsuffixed one are ambiguous; an unsuffixed LICENSE wins over suffixed ones.
-  expectProblem(problemsOf(modelOrigin('licence-ambiguous', { licence: null, files: { 'LICENSE-MIT': mit, 'LICENSE-CC0': cc0 } })), /LICENSE files name several \((MIT, CC0-1\.0|CC0-1\.0, MIT)\)/);
+  expectProblem(problemsOf(modelOrigin('licence-ambiguous', { hcl: undeclared, licence: null, files: { 'LICENSE-MIT': mit, 'LICENSE-CC0': cc0 } })), /LICENSE files name several \((MIT, CC0-1\.0|CC0-1\.0, MIT)\)/);
   assert.deepEqual(problemsOf(modelOrigin('licence-suffixed', { files: { 'LICENSE-CC0': cc0 } })), [], 'the unsuffixed LICENSE is the default, as in datatug/chinookdb');
   // A LICENSE that is a symbolic link is the default but is not read.
-  expectProblem(problemsOf(modelOrigin('licence-link', { licence: null, files: { 'real-license': mit }, symlinks: { LICENSE: 'real-license' } })), /LICENSE file names no licence the check recognises/);
+  expectProblem(problemsOf(modelOrigin('licence-link', { hcl: undeclared, licence: null, files: { 'real-license': mit }, symlinks: { LICENSE: 'real-license' } })), /LICENSE file names no licence the check recognises/);
 });
 
 // ---- index.json -----------------------------------------------------------

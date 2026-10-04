@@ -158,6 +158,7 @@ const licenceTexts = [
   ['CC0-1.0', /CC0 1\.0 Universal/],
   ['Apache-2.0', /Apache License\s+Version 2\.0/],
   ['CC-BY-4.0', /Attribution 4\.0 International/],
+  ['CC-BY-SA-3.0', /SPDX-License-Identifier:\s*CC-BY-SA-3\.0|Attribution-ShareAlike 3\.0 International/],
   ['BSD-3-Clause', /BSD 3-Clause/],
 ];
 
@@ -200,8 +201,9 @@ export function declaredLicence(text) {
 // licence. The default is the licence of the unsuffixed LICENSE file when
 // there is one (even if the check does not recognise its text); with no such
 // file, the one licence all LICENSE files name. When that is not exactly one
-// recognised licence, the file must declare its licence itself. A JSON file has
-// no comment to declare it in, so it always takes the repository's default.
+// recognised licence, the file must declare its licence itself. ModelSpec JSON
+// has no licence field, so a validated JSON twin inherits an explicit HCL
+// declaration; otherwise it takes the repository's default.
 function licenceProblems(file, view, path, declared, expected) {
   const { all, main, hasMain } = repositoryLicences(view);
   const fallback = hasMain ? main : all;
@@ -266,16 +268,19 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
   // The JSON AST is what the HCL source says. There is no ModelSpec tool that
   // does this yet; see scripts/lib/modelspec.mjs for what is compared.
   let document;
+  let hclJsonTwin = false;
   try {
     document = parseHcl(texts.source_file);
     const differences = astDifferences(toModelspecJson(document, ast.module), ast);
+    hclJsonTwin = differences.length === 0;
     for (const difference of differences.slice(0, maxDifferences)) problems.push(`${file}: ${data.json_file} does not match ${data.source_file}: ${difference}`);
     if (differences.length > maxDifferences) problems.push(`${file}: ${data.json_file} does not match ${data.source_file}: ${differences.length - maxDifferences} more differences`);
   } catch (error) { problems.push(`${file}: ${data.source_file}: ${error.message}`); }
 
   try {
-    problems.push(...licenceProblems(file, view, data.source_file, declaredLicence(texts.source_file), data.licence));
-    problems.push(...licenceProblems(file, view, data.json_file, null, data.licence));
+    const hclLicence = declaredLicence(texts.source_file);
+    problems.push(...licenceProblems(file, view, data.source_file, hclLicence, data.licence));
+    problems.push(...licenceProblems(file, view, data.json_file, hclJsonTwin ? hclLicence : null, data.licence));
   } catch (error) { problems.push(`${file}: licence: ${lastLine(error)}`); }
 
   if (problems.length > 0) return { problems };
