@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:ebca1ea7479d8796d347b660df9d9296056f3a39567766ec7093ac845827460b",
+  "checksum": "sha256:80f9e65b7beb3c042d8493311b726be7a33adae9453fd7cfce2980825b693c57",
   "models": [
     {
       "id": "chinook",
@@ -514,6 +514,692 @@
             {
               "name": "Quantity",
               "type": "int",
+              "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
+    {
+      "id": "northwind",
+      "title": "Northwind small-business database",
+      "description": "The data model of the classic Northwind sample database: customers, employees, orders, products, suppliers and related tables. Its entities and properties describe the pinned upstream SQLite schema; any copy of Northwind uses this model.",
+      "status": "draft",
+      "homepage": "https://northwind.demodb.dev/model/",
+      "address": "modelspec://github.com/demo-db/northwind/northwind",
+      "repository": "https://github.com/demo-db/northwind",
+      "commit": "8e9755ae30bb99f15601a7dd3833199f59d37035",
+      "module": "northwind",
+      "module_id": "github.com/demo-db/northwind/northwind",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "MIT",
+      "files": {
+        "source": "model/northwind.modelspec.hcl",
+        "json": "model/northwind.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "Categories",
+          "key": [
+            "CategoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CategoryID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CategoryName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Description",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Picture",
+              "type": "document",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "CustomerCustomerDemo",
+          "key": [
+            "CustomerID",
+            "CustomerTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CustomerID",
+              "type": "reference",
+              "references": "Customers",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CustomerTypeID",
+              "type": "reference",
+              "references": "CustomerDemographics",
+              "required": true,
+              "key": true
+            }
+          ]
+        },
+        {
+          "name": "CustomerDemographics",
+          "key": [
+            "CustomerTypeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CustomerTypeID",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CustomerDesc",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Customers",
+          "key": [
+            "CustomerID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "CustomerID",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CompanyName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ContactName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ContactTitle",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Address",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "City",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Region",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "PostalCode",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Country",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Phone",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Fax",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "EmployeeTerritories",
+          "key": [
+            "EmployeeID",
+            "TerritoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "EmployeeID",
+              "type": "reference",
+              "references": "Employees",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "TerritoryID",
+              "type": "reference",
+              "references": "Territories",
+              "required": true,
+              "key": true
+            }
+          ]
+        },
+        {
+          "name": "Employees",
+          "key": [
+            "EmployeeID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "EmployeeID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "LastName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "FirstName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Title",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "TitleOfCourtesy",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "BirthDate",
+              "type": "date",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "HireDate",
+              "type": "date",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Address",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "City",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Region",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "PostalCode",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Country",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "HomePhone",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Extension",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Photo",
+              "type": "document",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Notes",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ReportsTo",
+              "type": "reference",
+              "references": "Employees",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "PhotoPath",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "OrderDetails",
+          "key": [
+            "OrderID",
+            "ProductID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "OrderID",
+              "type": "reference",
+              "references": "Orders",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductID",
+              "type": "reference",
+              "references": "Products",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "UnitPrice",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Quantity",
+              "type": "int",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Discount",
+              "type": "decimal",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "key": [
+            "OrderID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "OrderID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CustomerID",
+              "type": "reference",
+              "references": "Customers",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "EmployeeID",
+              "type": "reference",
+              "references": "Employees",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "OrderDate",
+              "type": "datetime",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "RequiredDate",
+              "type": "datetime",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShippedDate",
+              "type": "datetime",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipVia",
+              "type": "reference",
+              "references": "Shippers",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Freight",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipAddress",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipCity",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipRegion",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipPostalCode",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ShipCountry",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Products",
+          "key": [
+            "ProductID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ProductID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ProductName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "SupplierID",
+              "type": "reference",
+              "references": "Suppliers",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "CategoryID",
+              "type": "reference",
+              "references": "Categories",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "QuantityPerUnit",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "UnitPrice",
+              "type": "decimal",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "UnitsInStock",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "UnitsOnOrder",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ReorderLevel",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Discontinued",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Regions",
+          "key": [
+            "RegionID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "RegionID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "RegionDescription",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Shippers",
+          "key": [
+            "ShipperID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "ShipperID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CompanyName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "Phone",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Suppliers",
+          "key": [
+            "SupplierID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "SupplierID",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "CompanyName",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "ContactName",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "ContactTitle",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Address",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "City",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Region",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "PostalCode",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Country",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Phone",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "Fax",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "HomePage",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "Territories",
+          "key": [
+            "TerritoryID"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "TerritoryID",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "TerritoryDescription",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "RegionID",
+              "type": "reference",
+              "references": "Regions",
               "required": true,
               "key": false
             }

@@ -923,6 +923,7 @@ test('licences: the record must state the licence the files carry', () => {
   assert.equal(declaredLicence('# License: CC0-1.0\n'), 'CC0-1.0');
   assert.equal(declaredLicence('entity "A" {\n}\n'), null);
   assert.equal(declaredLicence(`${'\n'.repeat(10)}# Licence: MIT`), null, 'only the first lines count');
+  assert.deepEqual(problemsOf(modelOrigin('licence-standard-mit-title', { licence: 'The MIT License (MIT)\n\nCopyright (c) 2026 Test\n' })), [], 'the common upstream MIT title is recognised');
 
   // The record says Apache-2.0, the HCL says MIT, the repository's LICENSE says MIT.
   const source = modelOrigin('licence-differs');
