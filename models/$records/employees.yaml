@@ -8,7 +8,7 @@ status: draft
 homepage: https://demodb.dev/employees/
 address: modelspec://github.com/demo-db/employees/employees
 repository: https://github.com/demo-db/employees
-commit: 2455bb327aa8444ec496d36e2fe6dcacfc58dc0a
+commit: 2069e26e8fdb60bdb16507f75569a579cf3da7cf
 module: employees
 source_file: model/employees.modelspec.hcl
 json_file: model/employees.modelspec.json
