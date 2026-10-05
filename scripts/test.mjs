@@ -212,7 +212,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.ok(sakila, 'the Sakila provider has a committed model record');
   assert.deepEqual(
     [sakila.data.address, sakila.data.repository, sakila.data.commit, sakila.data.module, sakila.data.licence],
-    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', '6567d30aec1592fe0917934a8bbe74ff70b04b01', 'sakila', 'BSD-3-Clause'],
+    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', 'cb9a81a8cbedcd8831737f281f888d5d584fae85', 'sakila', 'BSD-3-Clause'],
   );
   const sakilaIndex = index.models.find((model) => model.id === 'sakila');
   assert.ok(sakilaIndex, 'the Sakila provider appears in the generated index');
