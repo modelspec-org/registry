@@ -8,7 +8,7 @@ status: draft
 homepage: https://demodb.dev/adventureworks/
 address: modelspec://github.com/demo-db/adventureworks/adventureworks
 repository: https://github.com/demo-db/adventureworks
-commit: 31bdb4eceff01367ce812b2844530ed17a7d35ae
+commit: 5028a27189b487d6fd8025fafc1307aada707fd2
 module: adventureworks
 source_file: model/adventureworks.modelspec.hcl
 json_file: model/adventureworks.modelspec.json
