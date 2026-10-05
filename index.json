@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:83e4f2dcf4a4d2a107af2bec5a98328feb3c5b11b8448c75cdd65029999b35d1",
+  "checksum": "sha256:b7fc2fd0f34b404f3f6a10cdbb50ed9ece45b6535397bb5e8820f097d428b633",
   "models": [
     {
       "id": "adventureworks",
@@ -10,7 +10,7 @@
       "homepage": "https://demodb.dev/adventureworks/",
       "address": "modelspec://github.com/demo-db/adventureworks/adventureworks",
       "repository": "https://github.com/demo-db/adventureworks",
-      "commit": "cd8dcdf2079fe31480ad6d6c024b8c17cb91beea",
+      "commit": "31bdb4eceff01367ce812b2844530ed17a7d35ae",
       "module": "adventureworks",
       "module_id": "github.com/demo-db/adventureworks/adventureworks",
       "module_version": "0.1.0",
@@ -4232,7 +4232,7 @@
       "homepage": "https://demodb.dev/employees/",
       "address": "modelspec://github.com/demo-db/employees/employees",
       "repository": "https://github.com/demo-db/employees",
-      "commit": "2455bb327aa8444ec496d36e2fe6dcacfc58dc0a",
+      "commit": "2069e26e8fdb60bdb16507f75569a579cf3da7cf",
       "module": "employees",
       "module_id": "github.com/demo-db/employees/employees",
       "module_version": "0.1.0",
@@ -6277,7 +6277,7 @@
       "homepage": "https://sakila.demodb.dev/model/",
       "address": "modelspec://github.com/demo-db/sakila/sakila",
       "repository": "https://github.com/demo-db/sakila",
-      "commit": "6567d30aec1592fe0917934a8bbe74ff70b04b01",
+      "commit": "cb9a81a8cbedcd8831737f281f888d5d584fae85",
       "module": "sakila",
       "module_id": "github.com/demo-db/sakila/sakila",
       "module_version": "0.1.0",
