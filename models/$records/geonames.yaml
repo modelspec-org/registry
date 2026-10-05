@@ -1,0 +1,18 @@
+format: modelspec-registry/draft-1
+title: GeoNames source projection
+description: >-
+  Source-faithful model for four logical GeoNames recordsets: countries,
+  places, admin1 and alternate names. Native text fields, keys and unresolved
+  references remain available; auxiliary demo country bridge entities retain
+  separate source property scopes. Model metadata is CC0-1.0; source data is
+  CC-BY-4.0. Registration alone does not authorize raw-label interoperability.
+status: draft
+address: modelspec://github.com/ingitdb/geo-ingitdb/geonames
+repository: https://github.com/ingitdb/geo-ingitdb
+commit: 6f4cf1269bc393048f6b204069135a62f0bb6c02
+module: geonames
+source_file: model/geonames.modelspec.hcl
+json_file: model/geonames.modelspec.json
+licence: CC0-1.0
+maintainers:
+  - trakhimenok

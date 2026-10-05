@@ -1,0 +1,18 @@
+format: modelspec-registry/draft-1
+title: Research Organization Registry source projection
+description: >-
+  Source-faithful ROR schema 2 model: organizations preserve native URL identity,
+  status and original JSON; locations and relationships retain source array
+  ordinals as physical projections of one logical organizations recordset.
+  Model metadata is CC0-1.0; embedded GeoNames data remains CC-BY-4.0 under the
+  provider attribution. Registration does not authorize a user identifier mapping.
+status: draft
+address: modelspec://github.com/ingitdb/ror-ingitdb/ror
+repository: https://github.com/ingitdb/ror-ingitdb
+commit: dc78c1e929f1f10018f8c39e690351059a50c71f
+module: ror
+source_file: model/ror.modelspec.hcl
+json_file: model/ror.modelspec.json
+licence: CC0-1.0
+maintainers:
+  - trakhimenok

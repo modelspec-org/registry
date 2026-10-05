@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:6943b507f49b2b3987d75c8f16b76d3ed2bbf1a9e04a96575386875117723391",
+  "checksum": "sha256:83e4f2dcf4a4d2a107af2bec5a98328feb3c5b11b8448c75cdd65029999b35d1",
   "models": [
     {
       "id": "adventureworks",
@@ -4459,6 +4459,486 @@
       "components": []
     },
     {
+      "id": "geonames",
+      "title": "GeoNames source projection",
+      "description": "Source-faithful model for four logical GeoNames recordsets: countries, places, admin1 and alternate names. Native text fields, keys and unresolved references remain available; auxiliary demo country bridge entities retain separate source property scopes. Model metadata is CC0-1.0; source data is CC-BY-4.0. Registration alone does not authorize raw-label interoperability.",
+      "status": "draft",
+      "address": "modelspec://github.com/ingitdb/geo-ingitdb/geonames",
+      "repository": "https://github.com/ingitdb/geo-ingitdb",
+      "commit": "6f4cf1269bc393048f6b204069135a62f0bb6c02",
+      "module": "geonames",
+      "module_id": "github.com/ingitdb/geo-ingitdb/model/geonames",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "CC0-1.0",
+      "files": {
+        "source": "model/geonames.modelspec.hcl",
+        "json": "model/geonames.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "geonames_countries",
+          "key": [
+            "iso"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "iso",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "iso3",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "iso_numeric",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "fips",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "country",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "capital",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "area_sq_km",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "population",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "continent",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "tld",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "currency_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "currency_name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "phone",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "postal_code_format",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "postal_code_regex",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "languages",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "geonameid",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "neighbours",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "equivalent_fips_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_admin1",
+          "key": [
+            "code"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "code",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "asciiname",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "geonameid",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_places",
+          "key": [
+            "geonameid"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "geonameid",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "asciiname",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "alternatenames",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "latitude",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "longitude",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "feature_class",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "feature_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "country_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "cc2",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "admin1_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "admin2_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "admin3_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "admin4_code",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "population",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "elevation",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "dem",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "timezone",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "modification_date",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_alternate_names",
+          "key": [
+            "alternate_name_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "alternate_name_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "geonameid",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "isolanguage",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "alternate_name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "is_preferred_name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "is_short_name",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "is_colloquial",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "is_historic",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "from_period",
+              "type": "string",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "to_period",
+              "type": "string",
+              "required": false,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_chinook_customer_country",
+          "key": [
+            "serving_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "serving_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "raw_label",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "target_key",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_northwind_customer_country",
+          "key": [
+            "serving_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "serving_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "raw_label",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "target_key",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_northwind_order_country",
+          "key": [
+            "serving_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "serving_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "raw_label",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "target_key",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "geonames_pubs_publisher_country",
+          "key": [
+            "serving_id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "serving_id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "raw_label",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "target_key",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
+    {
       "id": "northwind",
       "title": "Northwind small-business database",
       "description": "The data model of the classic Northwind sample database: customers, employees, orders, products, suppliers and related tables. Its entities and properties describe the pinned upstream SQLite schema; any copy of Northwind uses this model.",
@@ -5652,6 +6132,134 @@
             },
             {
               "name": "pubdate",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        }
+      ],
+      "components": []
+    },
+    {
+      "id": "ror",
+      "title": "Research Organization Registry source projection",
+      "description": "Source-faithful ROR schema 2 model: organizations preserve native URL identity, status and original JSON; locations and relationships retain source array ordinals as physical projections of one logical organizations recordset. Model metadata is CC0-1.0; embedded GeoNames data remains CC-BY-4.0 under the provider attribution. Registration does not authorize a user identifier mapping.",
+      "status": "draft",
+      "address": "modelspec://github.com/ingitdb/ror-ingitdb/ror",
+      "repository": "https://github.com/ingitdb/ror-ingitdb",
+      "commit": "dc78c1e929f1f10018f8c39e690351059a50c71f",
+      "module": "ror",
+      "module_id": "github.com/ingitdb/ror-ingitdb/model/ror",
+      "module_version": "0.1.0",
+      "modelspec": "1.0-draft",
+      "licence": "CC0-1.0",
+      "files": {
+        "source": "model/ror.modelspec.hcl",
+        "json": "model/ror.modelspec.json"
+      },
+      "maintainers": [
+        "trakhimenok"
+      ],
+      "entities": [
+        {
+          "name": "organizations",
+          "key": [
+            "id"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "id",
+              "type": "string",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "raw_json",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "locations",
+          "key": [
+            "organization_id",
+            "ordinal"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "organization_id",
+              "type": "reference",
+              "references": "organizations",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ordinal",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "geonames_id",
+              "type": "int",
+              "required": false,
+              "key": false
+            },
+            {
+              "name": "geonames_details_json",
+              "type": "string",
+              "required": true,
+              "key": false
+            }
+          ]
+        },
+        {
+          "name": "relationships",
+          "key": [
+            "organization_id",
+            "ordinal"
+          ],
+          "use": [],
+          "properties": [
+            {
+              "name": "organization_id",
+              "type": "reference",
+              "references": "organizations",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "ordinal",
+              "type": "int",
+              "required": true,
+              "key": true
+            },
+            {
+              "name": "type",
+              "type": "string",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "id",
+              "type": "reference",
+              "references": "organizations",
+              "required": true,
+              "key": false
+            },
+            {
+              "name": "label",
               "type": "string",
               "required": true,
               "key": false
