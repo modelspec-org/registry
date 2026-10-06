@@ -1,0 +1,20 @@
+format: modelspec-registry/draft-1
+title: ECB daily native reference quote model
+description: >-
+  Preparatory model of ECB daily XML decoder output: FxReferenceQuote retains
+  native required time, currency and rate strings and declares no stable key.
+  EUR base and indicative-reference kind are source-definition context, without
+  an invented base field or EUR quote row. Date/currency grain is scoped to one
+  returned response; observation identities distinguish republications. Decimal
+  digits and trailing zeros remain lexical. CC0 covers authored model metadata
+  only; source execution, retention and paid applicability are not admitted.
+status: draft
+address: modelspec://github.com/openvaultdb/ovdb/ecb
+repository: https://github.com/openvaultdb/ovdb
+commit: 6751a14ae12bfeadbcc9a7c6aa6174c81d697e20
+module: ecb
+source_file: publisher/source/model/ecb-daily.modelspec.hcl
+json_file: publisher/source/model/ecb-daily.modelspec.json
+licence: CC0-1.0
+maintainers:
+  - trakhimenok
