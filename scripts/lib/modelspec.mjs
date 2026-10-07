@@ -19,7 +19,7 @@
 // check that a model's JSON AST is what its HCL source says. The code is the
 // one in meaninggraph/core (scripts/lib/modelspec.mjs at cb97dbc, CC0-1.0, also
 // used by datatug/chinookdb), without its comparison with published data. It
-// supports entities, components and enums; a source with collections,
+// supports entities, components, enums and collections; a source with
 // recordsets or projections is refused rather than guessed at. When ModelSpec
 // publishes its JSON Schema and a parser, replace this module with them.
 //
@@ -151,7 +151,7 @@ export function toModelspecJson(document, module) {
   const json = { modelspec: modelspecVersion, module };
   const add = (kind, name, value, line) => {
     json[kind] ??= Object.create(null);
-    if (Object.hasOwn(json[kind], name)) throw new Error(`line ${line}: duplicate ${{ entities: 'entity', components: 'component', enums: 'enum' }[kind]} "${name}"`);
+    if (Object.hasOwn(json[kind], name)) throw new Error(`line ${line}: duplicate ${{ entities: 'entity', components: 'component', enums: 'enum', collections: 'collection' }[kind]} "${name}"`);
     json[kind][name] = value;
   };
   for (const block of document.blocks) {
@@ -164,8 +164,12 @@ export function toModelspecJson(document, module) {
     } else if (block.type === 'enum') {
       if (block.blocks.length > 0) throw new Error(`line ${block.line}: enum "${block.name}" cannot contain blocks`);
       add('enums', block.name, { ...block.attributes }, block.line);
+    } else if (block.type === 'collection') {
+      const unsupported = Object.keys(block.attributes).filter((name) => !['kind', 'source', 'query'].includes(name));
+      if (unsupported.length > 0) throw new Error(`line ${block.line}: unsupported collection attribute ${unsupported.join(', ')}`);
+      add('collections', block.name, { ...block.attributes, fields: members(block, 'field', ['field']) }, block.line);
     } else {
-      throw new Error(`line ${block.line}: top-level ${block.type} blocks are not supported by this converter (entity, component, enum)`);
+      throw new Error(`line ${block.line}: top-level ${block.type} blocks are not supported by this converter (entity, component, enum, collection)`);
     }
   }
   return json;
@@ -181,7 +185,7 @@ function shapeProblems(json) {
   if (!isObject(json)) return ['the JSON AST must be an object'];
   const problems = [];
   if (!isObject(json.module)) problems.push('module must be an object');
-  for (const [kind, member] of [['entities', 'properties'], ['components', 'fields']]) {
+  for (const [kind, member] of [['entities', 'properties'], ['components', 'fields'], ['collections', 'fields']]) {
     if (json[kind] === undefined) continue;
     if (!isObject(json[kind])) { problems.push(`${kind} must be an object keyed by name`); continue; }
     for (const [name, concept] of Object.entries(json[kind])) {
@@ -201,23 +205,27 @@ function shapeProblems(json) {
 }
 
 // Structural checks from ModelSpec spec/json-format.md "Validation
-// Requirements", for entities, components and enums. Returns problems.
+// Requirements", for entities, components, enums and collections. Returns problems.
 export function validateModel(json) {
   const shape = shapeProblems(json);
   if (shape.length > 0) return shape;
   const problems = [];
   if (json.modelspec !== modelspecVersion) problems.push(`modelspec must be "${modelspecVersion}"`);
   if (!json.module?.id || !json.module?.version) problems.push('module.id and module.version are required');
-  const trio = new Map();
+  const declared = new Map();
   for (const kind of ['entities', 'components', 'enums']) {
     for (const name of Object.keys(json[kind] ?? {})) {
       if (reservedNames.includes(name)) problems.push(`${name} is a reserved name`);
       if (name.includes('.')) problems.push(`${name}: concept names cannot contain dots`);
-      if (trio.has(name)) problems.push(`${name} is declared as both ${trio.get(name)} and ${kind}`);
-      trio.set(name, kind);
+      if (declared.has(name)) problems.push(`${name} is declared as both ${declared.get(name)} and ${kind}`);
+      declared.set(name, kind);
     }
   }
-  const resolves = (name, kind) => trio.get(name) === kind;
+  for (const name of Object.keys(json.collections ?? {})) {
+    if (reservedNames.includes(name)) problems.push(`${name} is a reserved name`);
+    if (name.includes('.')) problems.push(`${name}: concept names cannot contain dots`);
+  }
+  const resolves = (name, kind) => declared.get(name) === kind;
   // A module-qualified name (decision 0014) needs a module resolver, which
   // draft 1 of the registry does not have: it is reported, never guessed at.
   const unresolved = (where, kind, name) => (String(name).includes('.')
@@ -257,6 +265,37 @@ export function validateModel(json) {
     }
     for (const used of entity.use ?? []) if (!resolves(used, 'components')) problems.push(unresolved(`entity ${name}`, 'component', used));
     for (const [property, member] of Object.entries(entity.properties ?? {})) checkMember(`${name}.${property}`, member);
+  }
+  for (const [name, collection] of Object.entries(json.collections ?? {})) {
+    if (!['editable', 'computed'].includes(collection.kind)) problems.push(`collection ${name} kind must be editable or computed`);
+    if (collection.source !== undefined && (typeof collection.source !== 'string' || !resolves(collection.source, 'entities'))) {
+      problems.push(unresolved(`collection ${name}`, 'entity source', collection.source));
+    }
+    if (collection.kind === 'computed' && (typeof collection.query !== 'string' || !collection.query.trim())) {
+      problems.push(`computed collection ${name} requires a non-empty query`);
+    } else if (collection.query !== undefined && typeof collection.query !== 'string') {
+      problems.push(`collection ${name} query must be a string`);
+    }
+    for (const attribute of Object.keys(collection)) {
+      if (!['kind', 'source', 'query', 'fields'].includes(attribute)) problems.push(`collection ${name} has unsupported attribute ${attribute}`);
+    }
+    for (const [field, definition] of Object.entries(collection.fields)) {
+      const where = `collection ${name}.${field}`;
+      if (!primitiveTypes.includes(definition.type)) problems.push(`${where} has unsupported type ${JSON.stringify(definition.type)}`);
+      for (const attribute of Object.keys(definition)) {
+        if (!['type', 'bind'].includes(attribute)) problems.push(`${where} has unsupported attribute ${attribute}`);
+      }
+      if (definition.bind !== undefined) {
+        if (typeof definition.bind !== 'string' || !/^[^.]+\.[^.]+$/.test(definition.bind)) {
+          problems.push(`${where} bind must name Entity.property`);
+        } else {
+          const [entityName, propertyName] = definition.bind.split('.');
+          if (!resolves(entityName, 'entities') || !Object.hasOwn(json.entities[entityName].properties, propertyName)) {
+            problems.push(`${where} references unknown entity property ${definition.bind}`);
+          }
+        }
+      }
+    }
   }
   return problems;
 }
@@ -298,7 +337,7 @@ function memberEntry(block, key) {
   return { name: block.name, ...shape, required: attributes.required === true, ...(key ? { key: key.includes(block.name) } : {}) };
 }
 
-// The entities and components of a model for the index, read from the parsed
+// The entities, components and collections of a model for the index, read from the parsed
 // HCL source in declaration order, as arrays (a JSON object would list
 // integer-like names first). The registry has already checked that the JSON AST
 // is what this source says, so this is the model. Each entity has its `key`,
@@ -307,12 +346,20 @@ function memberEntry(block, key) {
 // `references`) or "component" (with `component`).
 export function describeModel(document) {
   const ofType = (type) => document.blocks.filter((block) => block.type === type);
+  const collections = ofType('collection').map((block) => ({
+    name: block.name,
+    kind: block.attributes.kind,
+    ...(block.attributes.source === undefined ? {} : { source: block.attributes.source }),
+    ...(block.attributes.query === undefined ? {} : { query: block.attributes.query }),
+    fields: block.blocks.filter((child) => child.type === 'field').map((child) => ({ name: child.name, ...child.attributes })),
+  }));
   return {
     entities: ofType('entity').map((block) => {
       const key = block.attributes.key ?? [];
       return { name: block.name, key: [...key], use: [...(block.attributes.use ?? [])], properties: block.blocks.filter((child) => child.type === 'property').map((child) => memberEntry(child, key)) };
     }),
     components: ofType('component').map((block) => ({ name: block.name, fields: block.blocks.filter((child) => child.type === 'field').map((child) => memberEntry(child)) })),
+    ...(collections.length === 0 ? {} : { collections }),
   };
 }
 
