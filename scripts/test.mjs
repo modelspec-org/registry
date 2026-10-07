@@ -928,7 +928,6 @@ test('an HCL source the registry cannot read fails, never guessed at', () => {
     ['expression', fixtureHcl.replace('entity   = "Artist"', 'entity   = var.x'), /line \d+: unexpected character "\."/],
     ['interpolation', fixtureHcl.replace('max_len = 120', 'pattern = "${var.x}"'), /string interpolation is not ModelSpec v0/],
     ['map-style', 'entity "A" {\n  key = ["id"]\n  properties = { id = { type = "int" } }\n}\n', /map-style values are not ModelSpec v0 syntax/],
-    ['collection', `${fixtureHcl}\ncollection "artists" {\n  kind = "editable"\n  source = "Artist"\n}\n`, /top-level collection blocks are not supported by this converter/],
     ['recordset', `${fixtureHcl}\nrecordset "r" {\n  key = ["id"]\n}\n`, /top-level recordset blocks are not supported/],
     ['bare-identifier', fixtureHcl.replace('entity   = "Artist"', 'entity   = Artist'), /line \d+: Artist is not a literal \(expressions are not ModelSpec v0\)/],
     ['top-level-attribute', `x = 1\n${fixtureHcl}`, /top-level attributes are not ModelSpec v0/],
@@ -1484,6 +1483,88 @@ entity "T" {
   const [entry] = loadModels(options(dir)).entries;
   assert.deepEqual(entry.entities, [{ name: 'T', key: ['id'], use: ['Audit'], properties: [{ name: 'id', type: 'int', required: false, key: true }, { name: 'audit2', type: 'component', component: 'Audit', required: false, key: false }] }]);
   assert.deepEqual(entry.components, [{ name: 'Audit', fields: [{ name: 'createdAt', type: 'datetime', required: true }, { name: 'createdBy', type: 'reference', references: 'T', required: false }] }]);
+});
+
+test('native editable and computed collections round-trip through HCL, JSON and the registry index', () => {
+  const hcl = `entity "Task" {
+  key = ["id"]
+  property "id" { type = "uuid" }
+  property "title" { type = "string" }
+}
+collection "tasks" {
+  kind = "editable"
+  source = "Task"
+  field "id" { type = "uuid" bind = "Task.id" }
+  field "title" { type = "string" bind = "Task.title" }
+}
+collection "active_tasks" {
+  kind = "computed"
+  query = "from tasks where active"
+  field "id" { type = "uuid" bind = "Task.id" }
+}
+`;
+  const json = jsonFor('native-collections', hcl);
+  assert.deepEqual(validateModel(json), []);
+  assert.deepEqual(Object.keys(json.collections), ['tasks', 'active_tasks']);
+  assert.deepEqual(json.collections.tasks.fields.id, { type: 'uuid', bind: 'Task.id' });
+  const source = modelOrigin('native-collections', { hcl });
+  const dir = registry({ fixture: fixtureRecord(source) });
+  assert.deepEqual(check(dir).problems, []);
+  const [entry] = loadModels(options(dir)).entries;
+  assert.equal(entry.entities.length, 1);
+  assert.deepEqual(entry.collections, [
+    { name: 'tasks', kind: 'editable', source: 'Task', fields: [{ name: 'id', type: 'uuid', bind: 'Task.id' }, { name: 'title', type: 'string', bind: 'Task.title' }] },
+    { name: 'active_tasks', kind: 'computed', query: 'from tasks where active', fields: [{ name: 'id', type: 'uuid', bind: 'Task.id' }] },
+  ]);
+  assert.deepEqual(JSON.parse(buildIndex([entry])).models[0].collections, entry.collections);
+
+  const changed = structuredClone(json);
+  changed.collections.tasks.fields.title.bind = 'Task.id';
+  expectProblem(problemsOf(modelOrigin('native-collections-parity', { hcl, json: changed })), /collections\.tasks\.fields\.title\.bind is "Task.title" in the HCL source but "Task.id" in the JSON AST/);
+});
+
+test('collection validation rejects unsupported kinds, unresolved references and malformed fields', () => {
+  const hcl = `entity "Task" { property "id" { type = "uuid" } }
+collection "tasks" { kind = "editable" source = "Task" field "id" { type = "uuid" bind = "Task.id" } }
+`;
+  const cases = [
+    ['kind', (json) => { json.collections.tasks.kind = 'table'; }, /collection tasks kind must be editable or computed/],
+    ['computed-query', (json) => { json.collections.tasks.kind = 'computed'; }, /computed collection tasks requires a non-empty query/],
+    ['blank-query', (json) => { json.collections.tasks.kind = 'computed'; json.collections.tasks.query = ' '; }, /computed collection tasks requires a non-empty query/],
+    ['source', (json) => { json.collections.tasks.source = 'Nope'; }, /collection tasks references unknown entity source Nope/],
+    ['bind-entity', (json) => { json.collections.tasks.fields.id.bind = 'Nope.id'; }, /collection tasks\.id references unknown entity property Nope\.id/],
+    ['bind-property', (json) => { json.collections.tasks.fields.id.bind = 'Task.missing'; }, /collection tasks\.id references unknown entity property Task\.missing/],
+    ['bind-shape', (json) => { json.collections.tasks.fields.id.bind = 'id'; }, /collection tasks\.id bind must name Entity\.property/],
+    ['field-type', (json) => { json.collections.tasks.fields.id.type = 'varchar'; }, /collection tasks\.id has unsupported type "varchar"/],
+    ['field-attribute', (json) => { json.collections.tasks.fields.id.secret = true; }, /collection tasks\.id has unsupported attribute secret/],
+    ['collection-attribute', (json) => { json.collections.tasks.engine = 'sqlite'; }, /collection tasks has unsupported attribute engine/],
+    ['reserved-name', (json) => { json.collections.entities = json.collections.tasks; }, /entities is a reserved name/],
+  ];
+  for (const [name, change, pattern] of cases) {
+    const json = jsonFor(name, hcl);
+    change(json);
+    expectProblem(validateModel(json), pattern);
+  }
+  assert.deepEqual(validateModel(jsonFor('computed-valid', 'entity "Task" { property "id" { type = "uuid" } }\ncollection "computed" { kind = "computed" query = "from tasks" }\n')), []);
+  const duplicate = `${hcl}collection "tasks" { kind = "editable" }\n`;
+  assert.throws(() => toModelspecJson(parseHcl(duplicate), moduleFor('duplicate-collection')), /duplicate collection "tasks"/);
+  assert.throws(() => toModelspecJson(parseHcl(`${hcl}collection "other" { kind = "editable" projection "p" {} }`), moduleFor('nested-projection')), /cannot contain a projection block/);
+  assert.throws(() => toModelspecJson(parseHcl('collection "tasks" { kind = "editable" fields = "discarded source value" }'), moduleFor('discarded-fields')), /unsupported collection attribute fields/);
+});
+
+test('collections have a separate namespace from the referenceable trio', () => {
+  const hcl = `entity "Task" { property "id" { type = "uuid" } }
+collection "Task" { kind = "editable" source = "Task" field "id" { type = "uuid" bind = "Task.id" } }
+`;
+  const json = jsonFor('same-name-collection', hcl);
+  assert.deepEqual(validateModel(json), []);
+  const source = modelOrigin('same-name-collection', { hcl, json });
+  const dir = registry({ fixture: fixtureRecord(source) });
+  assert.deepEqual(check(dir).problems, []);
+  const [entry] = loadModels(options(dir)).entries;
+  assert.equal(entry.entities[0].name, 'Task');
+  assert.equal(entry.collections[0].name, 'Task');
+  assert.equal(JSON.parse(buildIndex([entry])).models[0].collections[0].fields[0].bind, 'Task.id');
 });
 
 test('an index block in an entity is refused, in grammatical English', () => {
