@@ -152,7 +152,8 @@ Draft 1 registers every model once, under one address.
 ### Status
 
 `draft` means the model is usable and checked, but ModelSpec itself is still a
-draft (`1.0-draft`) and the model can change shape. `published` is for models
+draft (`1.0-draft-2`, or `1.0-draft` for the earlier spelling) and the model
+can change shape. `published` is for models
 in a stable ModelSpec, so consumers can rely on them not changing shape.
 `deprecated` keeps the record (old pins stay resolvable) but tells consumers to
 move on.
@@ -216,6 +217,10 @@ model in one file, format `modelspec-registry/draft-1`:
 }
 ```
 
+- The index says `entities` and `properties` for a model's record types and
+  their fields, whichever spelling the model is written in; an entry's
+  `modelspec` is the identifier its JSON declares (`1.0-draft` or
+  `1.0-draft-2`).
 - A property is either a scalar (`type`: `string`, `int`, …), a **reference** to
   another entity (`type` is `reference` and `references` names the entity), or an
   embedded component (`type` is `component` and `component` names it).
@@ -318,7 +323,8 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    - the JSON AST passes the structural checks that ModelSpec's
      [JSON format](https://github.com/specscore/modelspec/blob/main/spec/json-format.md)
      lists (version, module, unique names, references that resolve, supported
-     types and constraints, keys, enum values) and has at least one entity. The
+     types and constraints, keys, enum values) and has at least one entity (a
+     record type, in the current spelling). The
      JSON is read with a reader that refuses a name used twice in one object
      (`JSON.parse` would keep the last one), and a name such as `constructor`
      or `toString` is an ordinary name;
@@ -357,9 +363,16 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    history clone is refreshed through its own remote, and is cloned again when
    that fails, so a publisher moving its default branch never breaks the check.
 3. **SpecScore's linter** (`npm run lint:hcl`, [`scripts/lint-hcl.mjs`](scripts/lint-hcl.mjs))
-   runs `specscore graph lint` over each HCL source. It is the one real ModelSpec
-   HCL parser there is today, and checks syntax, references, reserved names
-   and duplicates. The SpecScore release is pinned by version and SHA-256, and
+   runs `specscore graph lint` over each HCL source. It uses SpecScore's HCL
+   parser and, for the blocks it reads (`entity`, `component`, `enum`), checks
+   syntax, references, reserved names and duplicates. **The pinned release
+   (0.54.2) does not read the current spelling:** it parses a `record` block
+   and skips it. For a source that has a `record` block this step therefore
+   checks only the syntax (its `ok:` line says so), and `npm run check` is what
+   validates the model, in both spellings. The pin is not changed here; a
+   SpecScore release that reads `record` does not exist yet, and the pin is to be
+   bumped when one does, before any model is re-pinned in the current spelling.
+   The SpecScore release is pinned by version and SHA-256, and
    the hash is checked before every run, not only after a download: the cached
    archive must match it (or is downloaded again), and the binary is unpacked
    fresh from those verified bytes into a private directory that is removed
@@ -386,31 +399,58 @@ constraint of the collection definitions.
 
 ### What ModelSpec gives the checks, and what it does not yet
 
-ModelSpec is specified, but its tooling is not all published. As of
-[`specscore/modelspec@82dfe38`](https://github.com/specscore/modelspec/tree/82dfe38cef1dbdd88b915734502b14b6df0a8f39):
+ModelSpec's specification renamed three words in October 2026: `entity` became
+`record`, `property` became `field` and the `entity =` setting became `record =`
+in HCL, and the JSON identifier `1.0-draft` became `1.0-draft-2` with the keys
+`records`, `fields` and `record` for `entities`, `properties` and `entity`. The
+registry reads both spellings, as the specification asks of every reader
+([`specscore/modelspec@133134b`](https://github.com/specscore/modelspec/tree/133134b255ad7e94c9c838011605bb62c9675888),
+`spec/core-model.md`, "Deprecated Spellings"):
 
-- **No JSON Schema is published yet.** Its JSON format and its
-  [decision 0010](https://github.com/specscore/modelspec/blob/main/spec/decisions/0010-json-schema-publication.md)
-  promise `schema/modelspec-ast-1.0-draft.schema.json`, but `schema/` holds only
-  a README. So the registry cannot validate the JSON AST against a published
-  schema, and does not pin one. It implements the structural checks that the
-  JSON format document lists (`scripts/lib/modelspec.mjs`, the same code that
-  `meaninggraph/core` and `datatug/chinookdb` use). When the schema is
-  published, pin it and use it here.
-- **ModelSpec has no parser or serializer of its own.** The only HCL parser is
-  SpecScore's, a Go program that checks a source but does not write JSON. So
-  "the JSON AST matches the HCL source" is checked with a small converter in
-  this repository for the HCL ModelSpec v0 allows (entities, components and
-  enums, with literal values), which writes the JSON AST from the source and
-  compares it with the published one, ignoring the module (HCL has nowhere to
-  state it), the order of names and the layout. A source with collections,
-  recordsets, projections, `index` blocks or expressions is refused rather than
-  guessed at (so a model that declares an index cannot be registered yet), and
-  so is a module-qualified reference to another module (ModelSpec's
+- **Both spellings are accepted.** A model pinned in the earlier spelling stays
+  valid. `npm run check` and `npm run lint:hcl` print one `notice:` line for each
+  registry record whose files are in the earlier spelling, naming
+  `modelspec rewrite --write`; a notice never changes the exit status. A JSON
+  twin must be in the vocabulary of its HCL source (an HCL file that holds any
+  earlier word is exported as `1.0-draft`, one in the current spelling alone as
+  `1.0-draft-2`, as `modelspec export` does), and a JSON document that mixes
+  the two vocabularies is refused.
+- **`index.json` is unchanged.** It still has the keys `entities` and
+  `properties`, whatever the spelling of the model; only a model's own
+  `modelspec` value shows the identifier its JSON declares.
+- **Removed and reserved words are refused**, with a message that names the word:
+  `collection`, `recordset` and `column` were removed, and `projection`, `index`
+  and `migration` are reserved with no content, as HCL blocks and, where the
+  specification names one, as top-level JSON fields. `records` joins the reserved
+  concept names.
+
+What the checks implement and what they do not:
+
+- **They do not validate against the JSON Schemas ModelSpec publishes**
+  ([`modelspec-ast.schema.json`](https://modelspec.org/schema/modelspec-ast.schema.json),
+  the latest vocabulary, and the two versioned files
+  [`modelspec-ast-1.0-draft-2.schema.json`](https://modelspec.org/schema/modelspec-ast-1.0-draft-2.schema.json) and
+  [`modelspec-ast-1.0-draft.schema.json`](https://modelspec.org/schema/modelspec-ast-1.0-draft.schema.json)).
+  They implement the structural checks that the JSON format document lists
+  (`scripts/lib/modelspec.mjs`) in both vocabularies. This file started as the
+  one in `meaninggraph/core` and is also copied into other repositories
+  (`datatug/chinookdb` among them); those copies read the earlier spelling only
+  until they are updated.
+- **The HCL-to-JSON converter is a small one, in this file**, for the HCL
+  ModelSpec v0 allows (records, components and enums, with literal values); the
+  reference CLI (`modelspec export`) is the other converter. It writes the JSON
+  AST from the source and compares it with the published one, ignoring the
+  module (HCL has nowhere to state it), the order of names and the layout. A
+  source with a removed or reserved block, an expression or a top-level setting
+  is refused rather than guessed at, and so is a module-qualified reference to
+  another module (ModelSpec's
   [decision 0014](https://github.com/specscore/modelspec/blob/main/spec/decisions/0014-module-qualified-references.md)
   leaves finding modules to the consumer, and the registry has no resolver
-  yet). Full equivalence, for the whole language, awaits ModelSpec's own
-  tooling.
+  yet).
+- **Known limits, unchanged by the support for both spellings.** A removed or
+  reserved word written as a setting on a component or an enum is not refused,
+  and the validator accepts keys it does not know inside a record type, a
+  component or an enum; the reference CLI refuses both.
 
 ## Notifying the sites
 

@@ -10,18 +10,17 @@
 // the ModelSpec specification and is what the HCL source says; the module the
 // files declare is the record's, and the address is the repository plus the
 // module; the licence is the one the record states. Finally index.json must be
-// what `npm run index` writes.
+// what `npm run index` writes. A model file in the earlier spelling (entity,
+// property; 1.0-draft) is valid and still read: it is reported as a notice, one
+// per registry record, that does not change the exit status.
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkRegistry } from './lib/registry.mjs';
+import { checkRegistry, checkReport } from './lib/registry.mjs';
 
 const root = process.argv[2] ?? dirname(dirname(fileURLToPath(import.meta.url)));
 let result;
 try { result = checkRegistry({ root }); } catch (error) { console.error(`error: ${error.message}`); process.exit(1); }
-const { problems, models } = result;
-if (problems.length > 0) {
-  for (const problem of problems) console.error(`error: ${problem}`);
-  console.error(`${problems.length} problem${problems.length === 1 ? '' : 's'} in ${models} model${models === 1 ? '' : 's'}`);
-  process.exit(1);
-}
-console.log(`ok: ${models} model${models === 1 ? '' : 's'} checked`);
+const { stdout, stderr, status } = checkReport(result);
+for (const line of stderr) console.error(line);
+for (const line of stdout) console.log(line);
+process.exitCode = status;
