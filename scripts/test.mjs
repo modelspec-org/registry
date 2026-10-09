@@ -928,7 +928,7 @@ test('an HCL source the registry cannot read fails, never guessed at', () => {
     ['expression', fixtureHcl.replace('entity   = "Artist"', 'entity   = var.x'), /line \d+: unexpected character "\."/],
     ['interpolation', fixtureHcl.replace('max_len = 120', 'pattern = "${var.x}"'), /string interpolation is not ModelSpec v0/],
     ['map-style', 'entity "A" {\n  key = ["id"]\n  properties = { id = { type = "int" } }\n}\n', /map-style values are not ModelSpec v0 syntax/],
-    ['recordset', `${fixtureHcl}\nrecordset "r" {\n  key = ["id"]\n}\n`, /top-level recordset blocks are not supported/],
+    ['recordset', `${fixtureHcl}\nrecordset "r" {\n  key = ["id"]\n}\n`, /line \d+: the recordset block was removed from ModelSpec \(decision 0019\)/],
     ['bare-identifier', fixtureHcl.replace('entity   = "Artist"', 'entity   = Artist'), /line \d+: Artist is not a literal \(expressions are not ModelSpec v0\)/],
     ['top-level-attribute', `x = 1\n${fixtureHcl}`, /top-level attributes are not ModelSpec v0/],
     ['duplicate-entity', `${fixtureHcl}\nentity "Artist" {\n  key = ["ArtistId"]\n  property "ArtistId" {\n    type = "int"\n  }\n}\n`, /duplicate entity "Artist"/],
@@ -1485,90 +1485,30 @@ entity "T" {
   assert.deepEqual(entry.components, [{ name: 'Audit', fields: [{ name: 'createdAt', type: 'datetime', required: true }, { name: 'createdBy', type: 'reference', references: 'T', required: false }] }]);
 });
 
-test('native editable and computed collections round-trip through HCL, JSON and the registry index', () => {
-  const hcl = `entity "Task" {
-  key = ["id"]
-  property "id" { type = "uuid" }
-  property "title" { type = "string" }
-}
-collection "tasks" {
-  kind = "editable"
-  source = "Task"
-  field "id" { type = "uuid" bind = "Task.id" }
-  field "title" { type = "string" bind = "Task.title" }
-}
-collection "active_tasks" {
-  kind = "computed"
-  query = "from tasks where active"
-  field "id" { type = "uuid" bind = "Task.id" }
-}
-`;
-  const json = jsonFor('native-collections', hcl);
-  assert.deepEqual(validateModel(json), []);
-  assert.deepEqual(Object.keys(json.collections), ['tasks', 'active_tasks']);
-  assert.deepEqual(json.collections.tasks.fields.id, { type: 'uuid', bind: 'Task.id' });
-  const source = modelOrigin('native-collections', { hcl });
-  const dir = registry({ fixture: fixtureRecord(source) });
-  assert.deepEqual(check(dir).problems, []);
-  const [entry] = loadModels(options(dir)).entries;
-  assert.equal(entry.entities.length, 1);
-  assert.deepEqual(entry.collections, [
-    { name: 'tasks', kind: 'editable', source: 'Task', fields: [{ name: 'id', type: 'uuid', bind: 'Task.id' }, { name: 'title', type: 'string', bind: 'Task.title' }] },
-    { name: 'active_tasks', kind: 'computed', query: 'from tasks where active', fields: [{ name: 'id', type: 'uuid', bind: 'Task.id' }] },
-  ]);
-  assert.deepEqual(JSON.parse(buildIndex([entry])).models[0].collections, entry.collections);
-
-  const changed = structuredClone(json);
-  changed.collections.tasks.fields.title.bind = 'Task.id';
-  expectProblem(problemsOf(modelOrigin('native-collections-parity', { hcl, json: changed })), /collections\.tasks\.fields\.title\.bind is "Task.title" in the HCL source but "Task.id" in the JSON AST/);
-});
-
-test('collection validation rejects unsupported kinds, unresolved references and malformed fields', () => {
-  const hcl = `entity "Task" { property "id" { type = "uuid" } }
-collection "tasks" { kind = "editable" source = "Task" field "id" { type = "uuid" bind = "Task.id" } }
-`;
-  const cases = [
-    ['kind', (json) => { json.collections.tasks.kind = 'table'; }, /collection tasks kind must be editable or computed/],
-    ['computed-query', (json) => { json.collections.tasks.kind = 'computed'; }, /computed collection tasks requires a non-empty query/],
-    ['blank-query', (json) => { json.collections.tasks.kind = 'computed'; json.collections.tasks.query = ' '; }, /computed collection tasks requires a non-empty query/],
-    ['source', (json) => { json.collections.tasks.source = 'Nope'; }, /collection tasks references unknown entity source Nope/],
-    ['bind-entity', (json) => { json.collections.tasks.fields.id.bind = 'Nope.id'; }, /collection tasks\.id references unknown entity property Nope\.id/],
-    ['bind-property', (json) => { json.collections.tasks.fields.id.bind = 'Task.missing'; }, /collection tasks\.id references unknown entity property Task\.missing/],
-    ['bind-shape', (json) => { json.collections.tasks.fields.id.bind = 'id'; }, /collection tasks\.id bind must name Entity\.property/],
-    ['field-type', (json) => { json.collections.tasks.fields.id.type = 'varchar'; }, /collection tasks\.id has unsupported type "varchar"/],
-    ['field-attribute', (json) => { json.collections.tasks.fields.id.secret = true; }, /collection tasks\.id has unsupported attribute secret/],
-    ['collection-attribute', (json) => { json.collections.tasks.engine = 'sqlite'; }, /collection tasks has unsupported attribute engine/],
-    ['reserved-name', (json) => { json.collections.entities = json.collections.tasks; }, /entities is a reserved name/],
-  ];
-  for (const [name, change, pattern] of cases) {
-    const json = jsonFor(name, hcl);
-    change(json);
-    expectProblem(validateModel(json), pattern);
+test('removed constructs and reserved words are refused, in HCL and in JSON, and the message names the word', () => {
+  const words = ['collection', 'recordset', 'column', 'projection', 'index', 'migration'];
+  for (const word of words) {
+    const status = ['collection', 'recordset', 'column'].includes(word) ? /was removed from ModelSpec \(decision 0019\)/ : /is reserved by ModelSpec and has no content \(decision 0019\)/;
+    const named = new RegExp(`line \\d+: the ${word} block ${status.source}`);
+    // At the top level, and inside a record type.
+    const top = `${fixtureHcl}\n${word} "x" {\n}\n`;
+    const nested = fixtureHcl.replace('property "Name" {', `${word} "x" {\n  }\n\n  property "Name" {`);
+    for (const hcl of [top, nested]) {
+      assert.throws(() => toModelspecJson(parseHcl(hcl), moduleFor(word)), named);
+      expectProblem(problemsOf(modelOrigin(`refused-${word}`, { hcl, json: jsonFor(`refused-${word}`) })), new RegExp(`model/fixture\\.modelspec\\.hcl: ${named.source}`));
+    }
   }
-  assert.deepEqual(validateModel(jsonFor('computed-valid', 'entity "Task" { property "id" { type = "uuid" } }\ncollection "computed" { kind = "computed" query = "from tasks" }\n')), []);
-  const duplicate = `${hcl}collection "tasks" { kind = "editable" }\n`;
-  assert.throws(() => toModelspecJson(parseHcl(duplicate), moduleFor('duplicate-collection')), /duplicate collection "tasks"/);
-  assert.throws(() => toModelspecJson(parseHcl(`${hcl}collection "other" { kind = "editable" projection "p" {} }`), moduleFor('nested-projection')), /cannot contain a projection block/);
-  assert.throws(() => toModelspecJson(parseHcl('collection "tasks" { kind = "editable" fields = "discarded source value" }'), moduleFor('discarded-fields')), /unsupported collection attribute fields/);
-});
-
-test('collections have a separate namespace from the referenceable trio', () => {
-  const hcl = `entity "Task" { property "id" { type = "uuid" } }
-collection "Task" { kind = "editable" source = "Task" field "id" { type = "uuid" bind = "Task.id" } }
-`;
-  const json = jsonFor('same-name-collection', hcl);
+  // A collection with its settings is refused the same way, never converted.
+  assert.throws(() => toModelspecJson(parseHcl('collection "tasks" {\n  kind = "editable"\n}\n'), moduleFor('collection')), /the collection block was removed/);
+  // In JSON the removed and reserved top-level fields are refused.
+  for (const [field, status] of [['collections', 'was removed'], ['recordsets', 'was removed'], ['projections', 'is reserved by ModelSpec and has no content'], ['migrations', 'is reserved by ModelSpec and has no content']]) {
+    const json = jsonFor(`refused-${field}`);
+    json[field] = {};
+    assert.deepEqual(validateModel(json), [`the ${field} field ${status === 'was removed' ? status.replace('was removed', 'was removed from ModelSpec (decision 0019)') : `${status} (decision 0019); remove it`}`]);
+    expectProblem(problemsOf(withJson(`refused-json-${field}`, (ast) => { ast[field] = {}; })), new RegExp(`the ${field} field `));
+  }
+  // `index` is reserved as a block only: the specification names no JSON field for it.
+  const json = jsonFor('index-field');
+  json.index = {};
   assert.deepEqual(validateModel(json), []);
-  const source = modelOrigin('same-name-collection', { hcl, json });
-  const dir = registry({ fixture: fixtureRecord(source) });
-  assert.deepEqual(check(dir).problems, []);
-  const [entry] = loadModels(options(dir)).entries;
-  assert.equal(entry.entities[0].name, 'Task');
-  assert.equal(entry.collections[0].name, 'Task');
-  assert.equal(JSON.parse(buildIndex([entry])).models[0].collections[0].fields[0].bind, 'Task.id');
-});
-
-test('an index block in an entity is refused, in grammatical English', () => {
-  const hcl = fixtureHcl.replace('property "Name" {', 'index "by_name" {\n    properties = ["Name"]\n  }\n\n  property "Name" {');
-  expectProblem(problemsOf(modelOrigin('index-block', { hcl, json: jsonFor('index-block') })), /model\/fixture\.modelspec\.hcl: line \d+: entity "Artist" cannot contain an index block \(this converter supports property\)/);
-  expectProblem(problemsOf(modelOrigin('projection-block', { hcl: fixtureHcl.replace('property "Name" {', 'projection "p" {\n  }\n\n  property "Name" {'), json: jsonFor('projection-block') })), /cannot contain a projection block/);
 });
