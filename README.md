@@ -203,11 +203,11 @@ model in one file, format `modelspec-registry/draft-1`:
     "licence": "MIT",
     "files": { "source": "model/chinook.modelspec.hcl", "json": "model/chinook.modelspec.json" },
     "maintainers": ["trakhimenok"],
-    "entities": [{
+    "records": [{
       "name": "Album",
       "key": ["AlbumId"],
       "use": [],
-      "properties": [
+      "fields": [
         { "name": "AlbumId", "type": "int", "required": true, "key": true },
         { "name": "ArtistId", "type": "reference", "references": "Artist", "required": true, "key": false }
       ]
@@ -217,22 +217,24 @@ model in one file, format `modelspec-registry/draft-1`:
 }
 ```
 
-- The index says `entities` and `properties` for a model's record types and
-  their fields, whichever spelling the model is written in; an entry's
-  `modelspec` is the identifier its JSON declares (`1.0-draft` or
-  `1.0-draft-2`).
-- A property is either a scalar (`type`: `string`, `int`, …), a **reference** to
-  another entity (`type` is `reference` and `references` names the entity), or an
-  embedded component (`type` is `component` and `component` names it).
-- `required` and `key` say whether the property is required and whether it is
-  part of the entity's key.
-- An entity may have no key when the model does not assert stable record
-  identity; the index represents this as `key: []` and marks no property as a key.
-- `use` lists the components an entity embeds, and `components` lists each
+- The index says `records` and `fields` for a model's record types and their
+  fields, whichever spelling the model is written in; an entry's `modelspec` is
+  the identifier its JSON declares (`1.0-draft` or `1.0-draft-2`). The index
+  writes no `entities` or `properties`; readers still accept an index with
+  those earlier keys until the earlier spelling is retired.
+- A field is either a scalar (`type`: `string`, `int`, …), a **reference** to
+  another record type (`type` is `reference` and `references` names the record
+  type), or an embedded component (`type` is `component` and `component` names
+  it).
+- `required` and `key` say whether the field is required and whether it is
+  part of the record type's key.
+- A record type may have no key when the model does not assert stable record
+  identity; the index represents this as `key: []` and marks no field as a key.
+- `use` lists the components a record type embeds, and `components` lists each
   component the model declares with its `fields` (each with `name`, `type`,
   `references` or `component`, and `required`), so a page can show the fields
-  an entity gets from a component. Chinook has none.
-- Models are sorted by `id`; entities, properties, components and fields keep
+  a record type gets from a component. Chinook has none.
+- Models are sorted by `id`; record types, their fields, components and theirs keep
   the order of the HCL source, also when a name looks like an integer (the index
   is built from the source as lists, not from a JSON object, whose integer-like
   names would come first). The file is the same bytes every time it is built
@@ -417,9 +419,12 @@ registry reads both spellings, as the specification asks of every reader
   earlier word is exported as `1.0-draft`, one in the current spelling alone as
   `1.0-draft-2`, as `modelspec export` does), and a JSON document that mixes
   the two vocabularies is refused.
-- **`index.json` is unchanged.** It still has the keys `entities` and
-  `properties`, whatever the spelling of the model; only a model's own
-  `modelspec` value shows the identifier its JSON declares.
+- **`index.json` writes the current keys.** It has `records` and `fields`
+  (not `entities` and `properties`), whatever the spelling of the model, in
+  one change with no period in which both sets are written; readers still
+  accept an index with the earlier keys until the earlier spelling is retired.
+  A model's own `modelspec` value shows the identifier its JSON declares and
+  is not changed by the switch.
 - **Removed and reserved words are refused**, with a message that names the word:
   `collection`, `recordset` and `column` were removed, and `projection`, `index`
   and `migration` are reserved with no content, as HCL blocks and, where the

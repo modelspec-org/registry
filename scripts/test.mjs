@@ -196,7 +196,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.deepEqual([chinook.id, chinook.address, chinook.repository, chinook.commit, chinook.licence], ['chinook', data.address, data.repository, data.commit, 'MIT']);
   assert.deepEqual(chinook.files, { source: data.source_file, json: data.json_file });
   assert.equal(chinook.homepage, data.homepage);
-  assert.equal(chinook.entities.length, 11);
+  assert.equal(chinook.records.length, 11);
   const pubs = committed.models.find((model) => model.key === 'pubs');
   assert.ok(pubs, 'the Pubs provider has a committed model record');
   assert.equal(pubs.data.commit, '6c06c5c7395b03ff1a02c2b1a21485add3e1b65b');
@@ -204,11 +204,11 @@ test('the committed records are well formed and the committed index.json is cons
   assert.deepEqual([pubs.data.source_file, pubs.data.json_file], ['model/pubs.modelspec.hcl', 'model/pubs.modelspec.json']);
   const pubsIndex = index.models.find((model) => model.id === 'pubs');
   assert.ok(pubsIndex, 'the Pubs provider appears in the generated index');
-  assert.equal(pubsIndex.entities.length, 11, 'every native Pubs table is represented');
+  assert.equal(pubsIndex.records.length, 11, 'every native Pubs table is represented');
   for (const name of ['discounts', 'roysched']) {
-    const entity = pubsIndex.entities.find((candidate) => candidate.name === name);
-    assert.ok(entity, `${name} remains an entity in the index`);
-    assert.deepEqual(entity.key, [], `${name} has no fabricated ModelSpec key`);
+    const record = pubsIndex.records.find((candidate) => candidate.name === name);
+    assert.ok(record, `${name} remains a record type in the index`);
+    assert.deepEqual(record.key, [], `${name} has no fabricated ModelSpec key`);
   }
   const sakila = committed.models.find((model) => model.key === 'sakila');
   assert.ok(sakila, 'the Sakila provider has a committed model record');
@@ -218,7 +218,7 @@ test('the committed records are well formed and the committed index.json is cons
   );
   const sakilaIndex = index.models.find((model) => model.id === 'sakila');
   assert.ok(sakilaIndex, 'the Sakila provider appears in the generated index');
-  assert.equal(sakilaIndex.entities.length, 16, 'every physical Sakila table has a model entity');
+  assert.equal(sakilaIndex.records.length, 16, 'every physical Sakila table has a record type');
   assert.deepEqual(sakilaIndex.files, { source: sakila.data.source_file, json: sakila.data.json_file });
   assert.equal(readFileSync(join(root, 'index.json'), 'utf8'), `${JSON.stringify(index, null, 2)}\n`, 'index.json is written the way buildIndex writes it');
 });
@@ -235,7 +235,7 @@ test('the real Chinook model files pass every model check', () => {
   const { problems, entries } = loadModels(options(dir));
   assert.deepEqual(problems, []);
   assert.equal(json.module.id, 'github.com/demo-db/chinook/model/chinook');
-  assert.deepEqual(entries[0].entities.map((entity) => entity.name), ['Artist', 'Album', 'Track', 'Genre', 'MediaType', 'Playlist', 'PlaylistTrack', 'Customer', 'Employee', 'Invoice', 'InvoiceLine']);
+  assert.deepEqual(entries[0].records.map((record) => record.name), ['Artist', 'Album', 'Track', 'Genre', 'MediaType', 'Playlist', 'PlaylistTrack', 'Customer', 'Employee', 'Invoice', 'InvoiceLine']);
   assert.deepEqual(check(dir).problems, []);
 });
 
@@ -245,9 +245,9 @@ test('a well-formed fixture model passes, so the failures below are about what e
   assert.deepEqual(check(dir).problems, []);
   const { entries } = loadModels(options(dir));
   assert.deepEqual(entries[0].components, []);
-  assert.deepEqual(entries[0].entities, [
-    { name: 'Artist', key: ['ArtistId'], use: [], properties: [{ name: 'ArtistId', type: 'int', required: true, key: true }, { name: 'Name', type: 'string', required: false, key: false }] },
-    { name: 'Album', key: ['AlbumId'], use: [], properties: [{ name: 'AlbumId', type: 'int', required: true, key: true }, { name: 'ArtistId', type: 'reference', references: 'Artist', required: true, key: false }] },
+  assert.deepEqual(entries[0].records, [
+    { name: 'Artist', key: ['ArtistId'], use: [], fields: [{ name: 'ArtistId', type: 'int', required: true, key: true }, { name: 'Name', type: 'string', required: false, key: false }] },
+    { name: 'Album', key: ['AlbumId'], use: [], fields: [{ name: 'AlbumId', type: 'int', required: true, key: true }, { name: 'ArtistId', type: 'reference', references: 'Artist', required: true, key: false }] },
   ]);
   assert.deepEqual([entries[0].module, entries[0].module_id, entries[0].module_version, entries[0].modelspec], ['fixture', moduleFor('fine').id, '0.1.0', '1.0-draft']);
 });
@@ -873,7 +873,7 @@ test('the registry accepts entities without a declared key and does not invent o
   const json = jsonFor('keyless-entity', hcl);
   assert.equal(Object.hasOwn(json.entities.HeapRow, 'key'), false);
   assert.deepEqual(validateModel(json), []);
-  assert.deepEqual(describeModel(parseHcl(hcl)).entities, [{ name: 'HeapRow', key: [], use: [], properties: [{ name: 'value', type: 'string', required: false, key: false }] }]);
+  assert.deepEqual(describeModel(parseHcl(hcl)).records, [{ name: 'HeapRow', key: [], use: [], fields: [{ name: 'value', type: 'string', required: false, key: false }] }]);
 
   const malformed = structuredClone(json);
   malformed.entities.HeapRow.key = [];
@@ -951,7 +951,7 @@ test('the ModelSpec converter and checks do what the specification says', () => 
   assert.deepEqual(astDifferences({ ...json, module: { id: 'a', name: 'a', version: '1' } }, json), [], 'module is ignored');
   const described = describeModel(parseHcl('component "Audit" {\n  field "at" {\n    type = "datetime"\n    required = true\n  }\n  field "by" {\n    entity = "B"\n  }\n}\nentity "A" {\n  key = ["x", "y"]\n  use = ["Audit"]\n  property "x" {\n    type = "int"\n    required = true\n  }\n  property "y" {\n    entity = "B"\n  }\n  property "z" {\n    component = "Audit"\n  }\n}\n'));
   assert.deepEqual(described, {
-    entities: [{ name: 'A', key: ['x', 'y'], use: ['Audit'], properties: [{ name: 'x', type: 'int', required: true, key: true }, { name: 'y', type: 'reference', references: 'B', required: false, key: true }, { name: 'z', type: 'component', component: 'Audit', required: false, key: false }] }],
+    records: [{ name: 'A', key: ['x', 'y'], use: ['Audit'], fields: [{ name: 'x', type: 'int', required: true, key: true }, { name: 'y', type: 'reference', references: 'B', required: false, key: true }, { name: 'z', type: 'component', component: 'Audit', required: false, key: false }] }],
     components: [{ name: 'Audit', fields: [{ name: 'at', type: 'datetime', required: true }, { name: 'by', type: 'reference', references: 'B', required: false }] }],
   });
   // Components and named enums round-trip through the converter and validate.
@@ -1068,7 +1068,7 @@ test('buildIndex is deterministic: sorted by id, the checksum is the sha256 of t
   assert.equal(index.checksum, `sha256:${createHash('sha256').update(JSON.stringify(index.models)).digest('hex')}`);
   assert.match(index.checksum, /^sha256:[0-9a-f]{64}$/);
   assert.ok(written.endsWith('}\n'));
-  assert.deepEqual(Object.keys(index.models[0]), ['id', 'title', 'description', 'status', 'address', 'repository', 'commit', 'module', 'module_id', 'module_version', 'modelspec', 'licence', 'files', 'maintainers', 'entities', 'components']);
+  assert.deepEqual(Object.keys(index.models[0]), ['id', 'title', 'description', 'status', 'address', 'repository', 'commit', 'module', 'module_id', 'module_version', 'modelspec', 'licence', 'files', 'maintainers', 'records', 'components']);
   // The checksum covers the models: change one and it changes.
   const changed = JSON.parse(written);
   changed.models[0].commit = 'f'.repeat(40);
@@ -1221,7 +1221,7 @@ test('a forged model in the cache is not read: replace refs are discarded and ig
   const dir = registry({ fixture: fixtureRecord(source) });
   const { problems, entries } = loadModels({ ...options(dir), cacheDir: cache });
   assert.deepEqual(problems, []);
-  assert.deepEqual(entries[0].entities[0].properties.map((property) => property.name), ['ArtistId', 'Name']);
+  assert.deepEqual(entries[0].records[0].fields.map((field) => field.name), ['ArtistId', 'Name']);
   assert.equal(refsOf(entry, 'refs/replace'), '', 'the poisoned repository was thrown away and fetched again');
   assert.deepEqual(checkRegistry({ ...options(dir), cacheDir: cache }).problems, []);
 });
@@ -1399,7 +1399,7 @@ test('names like constructor, toString and __proto__ are ordinary names', () => 
   const dir = registry({ fixture: fixtureRecord(source) });
   assert.deepEqual(check(dir).problems, []);
   const { entries } = loadModels(options(dir));
-  assert.deepEqual(entries[0].entities[0], { name: 'valueOf', key: ['constructor'], use: [], properties: [
+  assert.deepEqual(entries[0].records[0], { name: 'valueOf', key: ['constructor'], use: [], fields: [
     { name: 'constructor', type: 'int', required: true, key: true },
     { name: 'toString', type: 'string', required: false, key: false },
     { name: '__proto__', type: 'string', required: false, key: false },
@@ -1452,7 +1452,7 @@ test('property order is the model\'s own, even for names that look like integers
   const source = modelOrigin('integer-names', { hcl });
   const dir = registry({ fixture: fixtureRecord(source) });
   assert.deepEqual(check(dir).problems, []);
-  assert.deepEqual(loadModels(options(dir)).entries[0].entities[0].properties.map((property) => property.name), ['b', '2', '1', 'a']);
+  assert.deepEqual(loadModels(options(dir)).entries[0].records[0].fields.map((field) => field.name), ['b', '2', '1', 'a']);
 });
 
 test('the index lists the components an entity uses and the fields they add', () => {
@@ -1484,7 +1484,7 @@ entity "T" {
   const dir = registry({ fixture: fixtureRecord(source) });
   assert.deepEqual(check(dir).problems, []);
   const [entry] = loadModels(options(dir)).entries;
-  assert.deepEqual(entry.entities, [{ name: 'T', key: ['id'], use: ['Audit'], properties: [{ name: 'id', type: 'int', required: false, key: true }, { name: 'audit2', type: 'component', component: 'Audit', required: false, key: false }] }]);
+  assert.deepEqual(entry.records, [{ name: 'T', key: ['id'], use: ['Audit'], fields: [{ name: 'id', type: 'int', required: false, key: true }, { name: 'audit2', type: 'component', component: 'Audit', required: false, key: false }] }]);
   assert.deepEqual(entry.components, [{ name: 'Audit', fields: [{ name: 'createdAt', type: 'datetime', required: true }, { name: 'createdBy', type: 'reference', references: 'T', required: false }] }]);
 });
 
@@ -1689,7 +1689,7 @@ test('a JSON twin must be in the vocabulary of its HCL source', () => {
   assert.deepEqual(problemsOf(modelOrigin('twin-mixed', { hcl: fixtureHcl.replace('entity "Album"', 'record "Album"').replace('property "AlbumId"', 'field "AlbumId"') })), []);
 });
 
-test('a model in the current spelling gives the index entry of the same model in the earlier one, and the index keeps its keys', () => {
+test('a model in the current spelling gives the index entry of the same model in the earlier one, and the index writes records and fields either way', () => {
   const entries = [fixtureHcl, currentHcl].map((hcl, i) => {
     const source = modelOrigin(`index-spelling-${i}`, { hcl });
     const dir = registry({ fixture: fixtureRecord(source) });
@@ -1703,11 +1703,13 @@ test('a model in the current spelling gives the index entry of the same model in
   const { modelspec: _a, address: _b, repository: _c, commit: _d, module_id: _e, ...currentRest } = currentEntry;
   const { modelspec: _f, address: _g, repository: _h, commit: _i, module_id: _j, ...earlierRest } = earlierEntry;
   assert.deepEqual(currentRest, earlierRest);
-  assert.ok(Object.hasOwn(currentEntry, 'entities') && Object.hasOwn(currentEntry, 'components'));
-  assert.equal(Object.hasOwn(currentEntry, 'records'), false);
-  assert.ok(Object.hasOwn(currentEntry.entities[0], 'properties'));
-  assert.equal(Object.hasOwn(currentEntry.entities[0], 'fields'), false);
-  assert.equal(currentEntry.entities[1].properties[1].references, 'Artist');
+  assert.ok(Object.hasOwn(currentEntry, 'records') && Object.hasOwn(currentEntry, 'components'));
+  assert.equal(Object.hasOwn(currentEntry, 'entities'), false);
+  assert.ok(Object.hasOwn(currentEntry.records[0], 'fields'));
+  assert.equal(Object.hasOwn(currentEntry.records[0], 'properties'), false);
+  assert.equal(currentEntry.records[1].fields[1].references, 'Artist');
+  // One switch: neither spelling's entry carries a key of the earlier vocabulary anywhere.
+  for (const entry of entries) assert.doesNotMatch(JSON.stringify(entry), /"(entities|properties|entity)":/);
 });
 
 test('describeModel gives one description whichever spelling the source uses', () => {
@@ -1717,7 +1719,7 @@ test('describeModel gives one description whichever spelling the source uses', (
   assert.deepEqual(describeModel(parseHcl(currentSource)), describeModel(parseHcl(earlierSource)));
   const mixed = earlierSource.replace('entity "B"', 'record "B"').replace('property "id"', 'field "id"').replace('entity = "B"\n  }\n  property', 'record = "B"\n  }\n  property');
   assert.deepEqual(describeModel(parseHcl(mixed)), describeModel(parseHcl(earlierSource)));
-  assert.equal(describeModel(parseHcl(currentSource)).entities[0].properties[1].references, 'B');
+  assert.equal(describeModel(parseHcl(currentSource)).records[0].fields[1].references, 'B');
 });
 
 test('a model file in the earlier spelling is a notice, never a problem, one per registry record', () => {
