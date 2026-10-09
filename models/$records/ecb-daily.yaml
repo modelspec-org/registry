@@ -11,7 +11,7 @@ description: >-
 status: draft
 address: modelspec://github.com/openvaultdb/ovdb/ecb
 repository: https://github.com/openvaultdb/ovdb
-commit: 6751a14ae12bfeadbcc9a7c6aa6174c81d697e20
+commit: 2a444f29df25ca81ecf83739aeb2441979c12d6f
 module: ecb
 source_file: publisher/source/model/ecb-daily.modelspec.hcl
 json_file: publisher/source/model/ecb-daily.modelspec.json

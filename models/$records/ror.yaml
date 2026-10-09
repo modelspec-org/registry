@@ -9,7 +9,7 @@ description: >-
 status: draft
 address: modelspec://github.com/ingitdb/ror-ingitdb/ror
 repository: https://github.com/ingitdb/ror-ingitdb
-commit: dc78c1e929f1f10018f8c39e690351059a50c71f
+commit: 295bf52951de7f4eb1c989e4147d7c1e97145b0a
 module: ror
 source_file: model/ror.modelspec.hcl
 json_file: model/ror.modelspec.json
