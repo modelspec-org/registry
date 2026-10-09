@@ -179,6 +179,10 @@ function refuseRemovedBlocks(blocks) {
 export const hclUsesEarlier = (document) => document.blocks.some((block) => block.type === earlier.record
   || block.blocks.some((child) => child.type === earlier.field || Object.hasOwn(child.attributes, earlier.record)));
 
+// Whether the source has a `record` block, which SpecScore's linter at the release the
+// registry pins (0.54.2) parses and skips.
+export const hclHasRecordBlock = (document) => document.blocks.some((block) => block.type === current.record);
+
 // A member's settings, with its reference to a record type spelled as `vocabulary` spells it.
 // One member that carries both spellings of the reference is an error.
 function memberSettings(member, vocabulary) {

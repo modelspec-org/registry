@@ -17,7 +17,7 @@ import { addressOf, cacheRepoSound, defaultBranch, defaultCacheDir, entryFor, gi
 import { astDifferences, describeModel, hclUsesEarlier, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './lib/modelspec.mjs';
 import { homepageProblem, maxHomepageLength, publicHttpsProblem } from './lib/urls.mjs';
 import { specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
-import { buildIndex, checkRegistry, declaredLicence, earlierSpellingNotice, loadModels, readRegistry, recordProblems, registryFormat, sourceNotices, wellFormed } from './lib/registry.mjs';
+import { buildIndex, checkRegistry, checkReport, declaredLicence, earlierSpellingNotice, lintOkLine, loadModels, readRegistry, recordProblems, registryFormat, sourceNotices, wellFormed } from './lib/registry.mjs';
 
 // The local repositories that stand in for https URLs are file:// URLs, at
 // https://example.test/fixtures/<name>; the tests allow that host and protocol.
@@ -1734,13 +1734,65 @@ test('a model file in the earlier spelling is a notice, never a problem, one per
   const result = check(dir);
   assert.deepEqual(result.problems, []);
   assert.deepEqual(result.notices, [
-    'models/$records/earlier.yaml: model/fixture.modelspec.hcl and model/fixture.modelspec.json are in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites them',
-    'models/$records/other.yaml: model/fixture.modelspec.hcl and model/fixture.modelspec.json are in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites them',
+    'models/$records/earlier.yaml: model/fixture.modelspec.hcl and model/fixture.modelspec.json are in the earlier spelling (entity, property, entity = in HCL; 1.0-draft with entities, properties, entity in JSON), which is still read; modelspec rewrite --write rewrites them',
+    'models/$records/other.yaml: model/fixture.modelspec.hcl and model/fixture.modelspec.json are in the earlier spelling (entity, property, entity = in HCL; 1.0-draft with entities, properties, entity in JSON), which is still read; modelspec rewrite --write rewrites them',
   ]);
-  assert.equal(earlierSpellingNotice('r.yaml', ['a.hcl']), 'r.yaml: a.hcl is in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites it');
+  assert.equal(earlierSpellingNotice('r.yaml', ['a.hcl']), 'r.yaml: a.hcl is in the earlier spelling (entity, property, entity = in HCL; 1.0-draft with entities, properties, entity in JSON), which is still read; modelspec rewrite --write rewrites it');
   // A broken model gives problems and no notice; a record that is not read gives neither.
   assert.deepEqual(problemsOf(modelOrigin('notice-broken', { json: '{ nope' })).length > 0, true);
-  assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', fixtureHcl), ['r.yaml: m.hcl is in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites it']);
+  assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', fixtureHcl), ['r.yaml: m.hcl is in the earlier spelling (entity, property, entity = in HCL; 1.0-draft with entities, properties, entity in JSON), which is still read; modelspec rewrite --write rewrites it']);
   assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', currentHcl), []);
   assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', 'entity "A" {'), []);
+});
+
+test('a property block in a record block is a word of the earlier spelling, and the document is 1.0-draft as modelspec export writes it', () => {
+  const hcl = 'record "A" {\n  key = ["id"]\n  property "id" {\n    type = "int"\n  }\n}\n';
+  assert.equal(hclUsesEarlier(parseHcl(hcl)), true);
+  const json = jsonFor('property-in-record', hcl);
+  assert.equal(json.modelspec, '1.0-draft');
+  assert.deepEqual(Object.keys(json), ['modelspec', 'module', 'entities']);
+  assert.deepEqual(Object.keys(json.entities.A), ['key', 'properties']);
+  assert.deepEqual(problemsOf(modelOrigin('property-in-record', { hcl })), []);
+  assert.equal(sourceNotices('r.yaml', 'm.hcl', hcl).length, 1);
+  // The same record type with a field block is the current spelling.
+  assert.equal(hclUsesEarlier(parseHcl(hcl.replace('property', 'field'))), false);
+});
+
+test('check.mjs prints notices on standard error only, and a notice never changes the exit status', () => {
+  const notices = ['models/$records/a.yaml: a.hcl is in the earlier spelling'];
+  const passing = checkReport({ problems: [], notices, models: 9 });
+  assert.deepEqual(passing, { stdout: ['ok: 9 models checked'], stderr: ['notice: models/$records/a.yaml: a.hcl is in the earlier spelling'], status: 0 });
+  assert.deepEqual(checkReport({ problems: [], notices: [], models: 1 }), { stdout: ['ok: 1 model checked'], stderr: [], status: 0 });
+  const failing = checkReport({ problems: ['p one', 'p two'], notices, models: 2 });
+  assert.equal(failing.status, 1);
+  assert.deepEqual(failing.stdout, []);
+  assert.deepEqual(failing.stderr, ['notice: models/$records/a.yaml: a.hcl is in the earlier spelling', 'error: p one', 'error: p two', '2 problems in 2 models']);
+  assert.equal(checkReport({ problems: ['p'], notices: [], models: 1 }).stderr.at(-1), '1 problem in 1 model');
+  // The status is the same with and without notices, for a passing and for a failing run.
+  assert.equal(checkReport({ problems: [], notices: [], models: 9 }).status, passing.status);
+  assert.equal(checkReport({ problems: ['p'], notices: [], models: 9 }).status, checkReport({ problems: ['p'], notices, models: 9 }).status);
+  // What the script does with it: the check on a real fixture registry gives notices that reach standard error.
+  const dir = registry({ fixture: fixtureRecord(modelOrigin('report-fixture')) });
+  const report = checkReport(check(dir));
+  assert.equal(report.status, 0);
+  assert.deepEqual(report.stdout, ['ok: 1 model checked']);
+  assert.equal(report.stderr.length, 1);
+  assert.match(report.stderr[0], /^notice: models\/\$records\/fixture\.yaml: .* modelspec rewrite --write rewrites them$/);
+});
+
+test('lint-hcl.mjs: a notice for a source in the earlier spelling, and an ok line that says plainly what was checked', () => {
+  const version = '0.54.2';
+  const args = (text) => ({ file: 'models/$records/m.yaml', sourceFile: 'model/m.modelspec.hcl', text, specscoreVersion: version });
+  // The earlier spelling: notice, and the linter's full verdict.
+  assert.equal(sourceNotices('models/$records/m.yaml', 'model/m.modelspec.hcl', fixtureHcl).length, 1);
+  assert.equal(lintOkLine(args(fixtureHcl)), 'ok: models/$records/m.yaml: model/m.modelspec.hcl passes specscore graph lint (specscore 0.54.2)');
+  // The current spelling, or any file with a record block: SpecScore skips the block.
+  for (const text of [currentHcl, `${fixtureHcl}\nrecord "Extra" {\n  field "id" {\n    type = "int"\n  }\n}\n`]) {
+    const line = lintOkLine(args(text));
+    assert.match(line, /^ok: models\/\$records\/m\.yaml: model\/m\.modelspec\.hcl parses under specscore graph lint \(specscore 0\.54\.2\), which checks only its syntax here: at this release it skips record blocks, and npm run check validates the model$/);
+  }
+  assert.deepEqual(sourceNotices('r', 'f', currentHcl), []);
+  // A source the registry parser cannot read is the linter's to judge: no notice, the plain line.
+  assert.deepEqual(sourceNotices('r', 'f', 'record "A" {'), []);
+  assert.match(lintOkLine(args('record "A" {')), /passes specscore graph lint/);
 });
