@@ -440,9 +440,13 @@ What the checks implement and what they do not:
   [`modelspec-ast-1.0-draft.schema.json`](https://modelspec.org/schema/modelspec-ast-1.0-draft.schema.json)).
   They implement the structural checks that the JSON format document lists
   (`scripts/lib/modelspec.mjs`) in both vocabularies. This file started as the
-  one in `meaninggraph/core` and is also copied into other repositories
-  (`datatug/chinookdb` among them); those copies read the earlier spelling only
-  until they are updated.
+  one in `meaninggraph/core` and is also copied into other repositories. The
+  copies in `meaninggraph/core`, `meaninggraph/registry`, `demo-db/chinook`,
+  `demo-db/northwind` and `datatug/chinookdb` read both spellings, as this one
+  does (checked on their default branches on 2026-10-09: each parses and
+  validates a source in either spelling and writes the JSON identifier of the
+  one it read); a copy in another repository may still read the earlier
+  spelling only.
 - **The HCL-to-JSON converter is a small one, in this file**, for the HCL
   ModelSpec v0 allows (records, components and enums, with literal values); the
   reference CLI (`modelspec export`) is the other converter. It writes the JSON
