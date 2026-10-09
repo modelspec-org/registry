@@ -8,7 +8,7 @@ the JSON AST), its licence and its maintainers.
 | Id | Address | Repository at commit | Status |
 |---|---|---|---|
 | `adventureworks` | `modelspec://github.com/demo-db/adventureworks/adventureworks` | [demo-db/adventureworks@5028a27](https://github.com/demo-db/adventureworks/tree/5028a27189b487d6fd8025fafc1307aada707fd2) | draft |
-| `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@26e852c](https://github.com/demo-db/chinook/tree/26e852cca00101f53a84ef8ee1f1ae389067f5cf) | draft |
+| `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@3e7bb31](https://github.com/demo-db/chinook/tree/3e7bb316d8a438eb7e5930067997a4e4543a275c) | draft |
 | `ecb-daily` | `modelspec://github.com/openvaultdb/ovdb/ecb` | [openvaultdb/ovdb@6751a14](https://github.com/openvaultdb/ovdb/tree/6751a14ae12bfeadbcc9a7c6aa6174c81d697e20) | draft |
 | `employees` | `modelspec://github.com/demo-db/employees/employees` | [demo-db/employees@2069e26](https://github.com/demo-db/employees/tree/2069e26e8fdb60bdb16507f75569a579cf3da7cf) | draft |
 | `geonames` | `modelspec://github.com/ingitdb/geo-ingitdb/geonames` | [ingitdb/geo-ingitdb@6f4cf12](https://github.com/ingitdb/geo-ingitdb/tree/6f4cf1269bc393048f6b204069135a62f0bb6c02) | draft |
@@ -195,11 +195,11 @@ model in one file, format `modelspec-registry/draft-1`:
     "homepage": "https://chinook.demodb.dev/model/",
     "address": "modelspec://github.com/demo-db/chinook/chinook",
     "repository": "https://github.com/demo-db/chinook",
-    "commit": "26e852cca00101f53a84ef8ee1f1ae389067f5cf",
+    "commit": "3e7bb316d8a438eb7e5930067997a4e4543a275c",
     "module": "chinook",
     "module_id": "github.com/demo-db/chinook/model/chinook",
     "module_version": "0.1.0",
-    "modelspec": "1.0-draft",
+    "modelspec": "1.0-draft-2",
     "licence": "MIT",
     "files": { "source": "model/chinook.modelspec.hcl", "json": "model/chinook.modelspec.json" },
     "maintainers": ["trakhimenok"],
@@ -440,9 +440,13 @@ What the checks implement and what they do not:
   [`modelspec-ast-1.0-draft.schema.json`](https://modelspec.org/schema/modelspec-ast-1.0-draft.schema.json)).
   They implement the structural checks that the JSON format document lists
   (`scripts/lib/modelspec.mjs`) in both vocabularies. This file started as the
-  one in `meaninggraph/core` and is also copied into other repositories
-  (`datatug/chinookdb` among them); those copies read the earlier spelling only
-  until they are updated.
+  one in `meaninggraph/core` and is also copied into other repositories. The
+  copies in `meaninggraph/core`, `meaninggraph/registry`, `demo-db/chinook`,
+  `demo-db/northwind` and `datatug/chinookdb` read both spellings, as this one
+  does (checked on their default branches on 2026-10-09: each parses and
+  validates a source in either spelling and writes the JSON identifier of the
+  one it read); a copy in another repository may still read the earlier
+  spelling only.
 - **The HCL-to-JSON converter is a small one, in this file**, for the HCL
   ModelSpec v0 allows (records, components and enums, with literal values); the
   reference CLI (`modelspec export`) is the other converter. It writes the JSON
