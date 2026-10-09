@@ -223,6 +223,67 @@ test('the committed records are well formed and the committed index.json is cons
   assert.equal(readFileSync(join(root, 'index.json'), 'utf8'), `${JSON.stringify(index, null, 2)}\n`, 'index.json is written the way buildIndex writes it');
 });
 
+// The shape the index promises, whatever the writer: every model lists `records` and
+// `components` as arrays, every record type and every component lists `fields` as an
+// array (an empty one when it has no member), and no key of the earlier spelling
+// (`entities`, `properties`, `entity`) appears anywhere, in the parsed index or in its text.
+function indexShapeProblems(index, text = JSON.stringify(index)) {
+  const problems = [];
+  for (const word of ['entities', 'properties', 'entity']) {
+    if (text.includes(`"${word}":`)) problems.push(`the key "${word}" of the earlier spelling appears in the index`);
+  }
+  index.models.forEach((model, m) => {
+    const where = `models[${m}] (${model.id})`;
+    for (const list of ['records', 'components']) {
+      if (!Array.isArray(model[list])) problems.push(`${where}: "${list}" is not an array`);
+    }
+    for (const list of ['records', 'components']) {
+      (model[list] ?? []).forEach((member, i) => {
+        if (!Array.isArray(member.fields)) problems.push(`${where}.${list}[${i}] (${member.name}): "fields" is not an array`);
+      });
+    }
+  });
+  return problems;
+}
+
+test('the whole committed index.json holds only the current keys: records and fields, on every model, record type and component', () => {
+  const text = readFileSync(join(root, 'index.json'), 'utf8');
+  const index = JSON.parse(text);
+  assert.ok(index.models.length >= 9);
+  assert.deepEqual(indexShapeProblems(index, text), []);
+  // The assertion can fail: each of these faults is named.
+  const clone = () => JSON.parse(text);
+  const underEarlierKey = clone();
+  underEarlierKey.models[2].entities = underEarlierKey.models[2].records;
+  delete underEarlierKey.models[2].records;
+  assert.match(indexShapeProblems(underEarlierKey).join('\n'), /"entities" of the earlier spelling/);
+  assert.match(indexShapeProblems(underEarlierKey).join('\n'), /"records" is not an array/);
+  const thirdProperties = clone();
+  thirdProperties.models[0].records[2].properties = thirdProperties.models[0].records[2].fields;
+  delete thirdProperties.models[0].records[2].fields;
+  assert.match(indexShapeProblems(thirdProperties).join('\n'), /"properties" of the earlier spelling/);
+  assert.match(indexShapeProblems(thirdProperties).join('\n'), /records\[2\] .*"fields" is not an array/);
+  const noFields = clone();
+  delete noFields.models[1].records[3].fields;
+  assert.match(indexShapeProblems(noFields).join('\n'), /records\[3\] .*"fields" is not an array/);
+});
+
+test('describeModel lists fields on every record type and component, in either spelling, including one with no member', () => {
+  const earlierSource = 'component "Empty" {\n}\nentity "A" {\n  property "x" {\n    type = "int"\n  }\n}\nentity "B" {\n  property "x" {\n    type = "int"\n  }\n}\nentity "C" {\n  property "x" {\n    entity = "A"\n  }\n}\nentity "D" {\n}\nentity "E" {\n  property "x" {\n    type = "int"\n  }\n}\n';
+  const currentSource = earlierSource.replaceAll('entity "', 'record "').replaceAll('property "', 'field "').replaceAll('entity =', 'record =');
+  assert.notEqual(currentSource, earlierSource);
+  for (const source of [earlierSource, currentSource]) {
+    const described = describeModel(parseHcl(source));
+    assert.equal(described.records.length, 5);
+    assert.deepEqual(described.records[3], { name: 'D', key: [], use: [], fields: [] }, 'a record type with no member still lists fields');
+    assert.deepEqual(described.components, [{ name: 'Empty', fields: [] }]);
+    const text = JSON.stringify({ models: [{ id: 'x', ...described }] });
+    assert.deepEqual(indexShapeProblems(JSON.parse(text), text), []);
+    assert.deepEqual(Object.keys(described), ['records', 'components']);
+    for (const record of described.records) assert.deepEqual(Object.keys(record), ['name', 'key', 'use', 'fields']);
+  }
+});
+
 test('the real Chinook model files pass every model check', () => {
   const source = origin('chinook-real', { 'model/chinook.modelspec.hcl': readFileSync(join(fixtures, 'model', 'chinook.modelspec.hcl')), 'model/chinook.modelspec.json': readFileSync(join(fixtures, 'model', 'chinook.modelspec.json')), LICENSE: readFileSync(join(fixtures, 'LICENSE')) });
   const json = JSON.parse(readFileSync(join(fixtures, 'model', 'chinook.modelspec.json'), 'utf8'));
