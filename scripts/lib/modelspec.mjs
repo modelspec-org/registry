@@ -399,19 +399,19 @@ function memberEntry(block, key) {
 
 // The record types and components of a model for the index, read from the parsed
 // HCL source in declaration order, as arrays (a JSON object would list
-// integer-like names first), in either spelling of the source. The index keeps its
-// keys `entities` and `properties` whatever the spelling, until a later change
-// moves them. The registry has already checked that the JSON AST is what this
-// source says, so this is the model. Each record type has its `key`, the
-// components it embeds with `use`, and its `properties`; each component has its
-// `fields`. A property's `type` is a primitive, "reference" (with `references`) or
-// "component" (with `component`).
+// integer-like names first), in either spelling of the source. The index writes
+// the keys `records` and `fields` whatever the spelling; readers still accept an
+// index with the earlier keys `entities` and `properties`. The registry has
+// already checked that the JSON AST is what this source says, so this is the
+// model. Each record type has its `key`, the components it embeds with `use`,
+// and its `fields`; each component has its `fields`. A field's `type` is a
+// primitive, "reference" (with `references`) or "component" (with `component`).
 export function describeModel(document) {
   const ofType = (types) => document.blocks.filter((block) => types.includes(block.type));
   return {
-    entities: ofType(recordBlocks).map((block) => {
+    records: ofType(recordBlocks).map((block) => {
       const key = block.attributes.key ?? [];
-      return { name: block.name, key: [...key], use: [...(block.attributes.use ?? [])], properties: block.blocks.filter((child) => fieldBlocks.includes(child.type)).map((child) => memberEntry(child, key)) };
+      return { name: block.name, key: [...key], use: [...(block.attributes.use ?? [])], fields: block.blocks.filter((child) => fieldBlocks.includes(child.type)).map((child) => memberEntry(child, key)) };
     }),
     components: ofType(['component']).map((block) => ({ name: block.name, fields: block.blocks.filter((child) => child.type === 'field').map((child) => memberEntry(child)) })),
   };

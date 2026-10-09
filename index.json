@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:c191e57a271f4ae75a60dd0f0380e4ca11295eeebb9f32f09582f700622d4377",
+  "checksum": "sha256:76aef098607b57528e6d1772e709da6714dec7a5f92e914266e7ad6f7f3e392d",
   "models": [
     {
       "id": "adventureworks",
@@ -23,14 +23,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "HumanResources_Department",
           "key": [
             "DepartmentID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "DepartmentID",
               "type": "int",
@@ -63,7 +63,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -172,7 +172,7 @@
             "ShiftID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -221,7 +221,7 @@
             "RateChangeDate"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -261,7 +261,7 @@
             "JobCandidateID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "JobCandidateID",
               "type": "int",
@@ -295,7 +295,7 @@
             "ShiftID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ShiftID",
               "type": "int",
@@ -334,7 +334,7 @@
             "AddressID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "AddressID",
               "type": "int",
@@ -398,7 +398,7 @@
             "AddressTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "AddressTypeID",
               "type": "int",
@@ -431,7 +431,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "int",
@@ -460,7 +460,7 @@
             "AddressTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -504,7 +504,7 @@
             "ContactTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -546,7 +546,7 @@
             "ContactTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ContactTypeID",
               "type": "int",
@@ -573,7 +573,7 @@
             "CountryRegionCode"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CountryRegionCode",
               "type": "string",
@@ -601,7 +601,7 @@
             "EmailAddressID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -641,7 +641,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -681,7 +681,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -771,7 +771,7 @@
             "PhoneNumberTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -806,7 +806,7 @@
             "PhoneNumberTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "PhoneNumberTypeID",
               "type": "int",
@@ -833,7 +833,7 @@
             "StateProvinceID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "StateProvinceID",
               "type": "int",
@@ -892,7 +892,7 @@
             "BillOfMaterialsID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BillOfMaterialsID",
               "type": "int",
@@ -958,7 +958,7 @@
             "CultureID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CultureID",
               "type": "string",
@@ -985,7 +985,7 @@
             "DocumentNode"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "DocumentNode",
               "type": "document",
@@ -1079,7 +1079,7 @@
             "IllustrationID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "IllustrationID",
               "type": "int",
@@ -1106,7 +1106,7 @@
             "LocationID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "LocationID",
               "type": "int",
@@ -1145,7 +1145,7 @@
             "ProductID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "int",
@@ -1308,7 +1308,7 @@
             "ProductCategoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductCategoryID",
               "type": "int",
@@ -1342,7 +1342,7 @@
             "StartDate"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "reference",
@@ -1382,7 +1382,7 @@
             "ProductDescriptionID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductDescriptionID",
               "type": "int",
@@ -1416,7 +1416,7 @@
             "DocumentNode"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "reference",
@@ -1446,7 +1446,7 @@
             "LocationID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "reference",
@@ -1500,7 +1500,7 @@
             "StartDate"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "reference",
@@ -1540,7 +1540,7 @@
             "ProductModelID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductModelID",
               "type": "int",
@@ -1586,7 +1586,7 @@
             "IllustrationID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductModelID",
               "type": "reference",
@@ -1617,7 +1617,7 @@
             "CultureID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductModelID",
               "type": "reference",
@@ -1653,7 +1653,7 @@
             "ProductPhotoID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductPhotoID",
               "type": "int",
@@ -1699,7 +1699,7 @@
             "ProductPhotoID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "reference",
@@ -1734,7 +1734,7 @@
             "ProductReviewID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductReviewID",
               "type": "int",
@@ -1792,7 +1792,7 @@
             "ProductSubcategoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductSubcategoryID",
               "type": "int",
@@ -1832,7 +1832,7 @@
             "ScrapReasonID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ScrapReasonID",
               "type": "int",
@@ -1859,7 +1859,7 @@
             "TransactionID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "TransactionID",
               "type": "int",
@@ -1923,7 +1923,7 @@
             "TransactionID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "TransactionID",
               "type": "int",
@@ -1986,7 +1986,7 @@
             "UnitMeasureCode"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "UnitMeasureCode",
               "type": "string",
@@ -2013,7 +2013,7 @@
             "WorkOrderID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "WorkOrderID",
               "type": "int",
@@ -2086,7 +2086,7 @@
             "OperationSequence"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "WorkOrderID",
               "type": "reference",
@@ -2170,7 +2170,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "reference",
@@ -2249,7 +2249,7 @@
             "PurchaseOrderDetailID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "PurchaseOrderID",
               "type": "reference",
@@ -2326,7 +2326,7 @@
             "PurchaseOrderID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "PurchaseOrderID",
               "type": "int",
@@ -2416,7 +2416,7 @@
             "ShipMethodID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ShipMethodID",
               "type": "int",
@@ -2461,7 +2461,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -2520,7 +2520,7 @@
             "CurrencyCode"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CountryRegionCode",
               "type": "reference",
@@ -2549,7 +2549,7 @@
             "CreditCardID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CreditCardID",
               "type": "int",
@@ -2594,7 +2594,7 @@
             "CurrencyCode"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CurrencyCode",
               "type": "string",
@@ -2621,7 +2621,7 @@
             "CurrencyRateID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CurrencyRateID",
               "type": "int",
@@ -2674,7 +2674,7 @@
             "CustomerID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CustomerID",
               "type": "int",
@@ -2729,7 +2729,7 @@
             "CreditCardID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -2759,7 +2759,7 @@
             "SalesOrderDetailID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SalesOrderID",
               "type": "reference",
@@ -2837,7 +2837,7 @@
             "SalesOrderID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SalesOrderID",
               "type": "int",
@@ -3011,7 +3011,7 @@
             "SalesReasonID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SalesOrderID",
               "type": "reference",
@@ -3040,7 +3040,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -3106,7 +3106,7 @@
             "QuotaDate"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -3146,7 +3146,7 @@
             "SalesReasonID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SalesReasonID",
               "type": "int",
@@ -3179,7 +3179,7 @@
             "SalesTaxRateID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SalesTaxRateID",
               "type": "int",
@@ -3231,7 +3231,7 @@
             "TerritoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "TerritoryID",
               "type": "int",
@@ -3303,7 +3303,7 @@
             "TerritoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -3350,7 +3350,7 @@
             "ShoppingCartItemID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ShoppingCartItemID",
               "type": "int",
@@ -3396,7 +3396,7 @@
             "SpecialOfferID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SpecialOfferID",
               "type": "int",
@@ -3472,7 +3472,7 @@
             "ProductID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SpecialOfferID",
               "type": "reference",
@@ -3507,7 +3507,7 @@
             "BusinessEntityID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "BusinessEntityID",
               "type": "reference",
@@ -3554,7 +3554,7 @@
             "SystemInformationID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SystemInformationID",
               "type": "int",
@@ -3587,7 +3587,7 @@
             "DatabaseLogID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "DatabaseLogID",
               "type": "int",
@@ -3644,7 +3644,7 @@
             "ErrorLogID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ErrorLogID",
               "type": "int",
@@ -3725,14 +3725,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "Artist",
           "key": [
             "ArtistId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ArtistId",
               "type": "int",
@@ -3753,7 +3753,7 @@
             "AlbumId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "AlbumId",
               "type": "int",
@@ -3781,7 +3781,7 @@
             "TrackId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "TrackId",
               "type": "int",
@@ -3847,7 +3847,7 @@
             "GenreId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "GenreId",
               "type": "int",
@@ -3868,7 +3868,7 @@
             "MediaTypeId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "MediaTypeId",
               "type": "int",
@@ -3889,7 +3889,7 @@
             "PlaylistId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "PlaylistId",
               "type": "int",
@@ -3911,7 +3911,7 @@
             "TrackId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "PlaylistId",
               "type": "reference",
@@ -3934,7 +3934,7 @@
             "CustomerId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CustomerId",
               "type": "int",
@@ -4022,7 +4022,7 @@
             "EmployeeId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "EmployeeId",
               "type": "int",
@@ -4122,7 +4122,7 @@
             "InvoiceId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "InvoiceId",
               "type": "int",
@@ -4186,7 +4186,7 @@
             "InvoiceLineId"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "InvoiceLineId",
               "type": "int",
@@ -4244,12 +4244,12 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "FxReferenceQuote",
           "key": [],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "time",
               "type": "string",
@@ -4294,14 +4294,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "departments",
           "key": [
             "dept_no"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "dept_no",
               "type": "string",
@@ -4323,7 +4323,7 @@
             "dept_no"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "emp_no",
               "type": "reference",
@@ -4359,7 +4359,7 @@
             "dept_no"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "emp_no",
               "type": "reference",
@@ -4394,7 +4394,7 @@
             "emp_no"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "emp_no",
               "type": "int",
@@ -4440,7 +4440,7 @@
             "from_date"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "emp_no",
               "type": "reference",
@@ -4476,7 +4476,7 @@
             "from_date"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "emp_no",
               "type": "reference",
@@ -4527,14 +4527,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "geonames_countries",
           "key": [
             "iso"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "iso",
               "type": "string",
@@ -4657,7 +4657,7 @@
             "code"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "code",
               "type": "string",
@@ -4690,7 +4690,7 @@
             "geonameid"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "geonameid",
               "type": "string",
@@ -4813,7 +4813,7 @@
             "alternate_name_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "alternate_name_id",
               "type": "string",
@@ -4882,7 +4882,7 @@
             "serving_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "serving_id",
               "type": "string",
@@ -4909,7 +4909,7 @@
             "serving_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "serving_id",
               "type": "string",
@@ -4936,7 +4936,7 @@
             "serving_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "serving_id",
               "type": "string",
@@ -4963,7 +4963,7 @@
             "serving_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "serving_id",
               "type": "string",
@@ -5008,14 +5008,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "Categories",
           "key": [
             "CategoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CategoryID",
               "type": "int",
@@ -5049,7 +5049,7 @@
             "CustomerTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CustomerID",
               "type": "reference",
@@ -5072,7 +5072,7 @@
             "CustomerTypeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CustomerTypeID",
               "type": "string",
@@ -5093,7 +5093,7 @@
             "CustomerID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "CustomerID",
               "type": "string",
@@ -5169,7 +5169,7 @@
             "TerritoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "EmployeeID",
               "type": "reference",
@@ -5192,7 +5192,7 @@
             "EmployeeID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "EmployeeID",
               "type": "int",
@@ -5311,7 +5311,7 @@
             "ProductID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "OrderID",
               "type": "reference",
@@ -5352,7 +5352,7 @@
             "OrderID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "OrderID",
               "type": "int",
@@ -5448,7 +5448,7 @@
             "ProductID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ProductID",
               "type": "int",
@@ -5519,7 +5519,7 @@
             "RegionID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "RegionID",
               "type": "int",
@@ -5540,7 +5540,7 @@
             "ShipperID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "ShipperID",
               "type": "int",
@@ -5567,7 +5567,7 @@
             "SupplierID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "SupplierID",
               "type": "int",
@@ -5648,7 +5648,7 @@
             "TerritoryID"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "TerritoryID",
               "type": "string",
@@ -5694,14 +5694,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "authors",
           "key": [
             "au_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "au_id",
               "type": "string",
@@ -5762,7 +5762,7 @@
           "name": "discounts",
           "key": [],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "discounttype",
               "type": "string",
@@ -5802,7 +5802,7 @@
             "emp_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "emp_id",
               "type": "string",
@@ -5861,7 +5861,7 @@
             "job_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "job_id",
               "type": "int",
@@ -5894,7 +5894,7 @@
             "pub_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "pub_id",
               "type": "reference",
@@ -5922,7 +5922,7 @@
             "pub_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "pub_id",
               "type": "string",
@@ -5959,7 +5959,7 @@
           "name": "roysched",
           "key": [],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "title_id",
               "type": "reference",
@@ -5995,7 +5995,7 @@
             "title_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "stor_id",
               "type": "reference",
@@ -6042,7 +6042,7 @@
             "stor_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "stor_id",
               "type": "string",
@@ -6088,7 +6088,7 @@
             "title_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "au_id",
               "type": "reference",
@@ -6123,7 +6123,7 @@
             "title_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "title_id",
               "type": "string",
@@ -6210,14 +6210,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "organizations",
           "key": [
             "id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "id",
               "type": "string",
@@ -6245,7 +6245,7 @@
             "ordinal"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "organization_id",
               "type": "reference",
@@ -6280,7 +6280,7 @@
             "ordinal"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "organization_id",
               "type": "reference",
@@ -6339,14 +6339,14 @@
       "maintainers": [
         "trakhimenok"
       ],
-      "entities": [
+      "records": [
         {
           "name": "actor",
           "key": [
             "actor_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "actor_id",
               "type": "int",
@@ -6379,7 +6379,7 @@
             "address_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "address_id",
               "type": "int",
@@ -6443,7 +6443,7 @@
             "category_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "category_id",
               "type": "int",
@@ -6470,7 +6470,7 @@
             "city_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "city_id",
               "type": "int",
@@ -6504,7 +6504,7 @@
             "country_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "country_id",
               "type": "int",
@@ -6531,7 +6531,7 @@
             "customer_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "customer_id",
               "type": "int",
@@ -6596,7 +6596,7 @@
             "film_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "film_id",
               "type": "int",
@@ -6686,7 +6686,7 @@
             "film_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "actor_id",
               "type": "reference",
@@ -6716,7 +6716,7 @@
             "category_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "film_id",
               "type": "reference",
@@ -6745,7 +6745,7 @@
             "film_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "film_id",
               "type": "int",
@@ -6772,7 +6772,7 @@
             "inventory_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "inventory_id",
               "type": "int",
@@ -6807,7 +6807,7 @@
             "language_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "language_id",
               "type": "int",
@@ -6834,7 +6834,7 @@
             "payment_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "payment_id",
               "type": "int",
@@ -6888,7 +6888,7 @@
             "rental_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "rental_id",
               "type": "int",
@@ -6942,7 +6942,7 @@
             "staff_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "staff_id",
               "type": "int",
@@ -7019,7 +7019,7 @@
             "store_id"
           ],
           "use": [],
-          "properties": [
+          "fields": [
             {
               "name": "store_id",
               "type": "int",
