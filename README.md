@@ -363,15 +363,17 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    history clone is refreshed through its own remote, and is cloned again when
    that fails, so a publisher moving its default branch never breaks the check.
 3. **SpecScore's linter** (`npm run lint:hcl`, [`scripts/lint-hcl.mjs`](scripts/lint-hcl.mjs))
-   runs `specscore graph lint` over each HCL source. It uses SpecScore's HCL
-   parser and, for the blocks it reads (`entity`, `component`, `enum`), checks
-   syntax, references, reserved names and duplicates. **The pinned release
-   (0.54.2) does not read the current spelling:** it parses a `record` block
-   and skips it. For a source that has a `record` block this step therefore
-   checks only the syntax (its `ok:` line says so), and `npm run check` is what
-   validates the model, in both spellings. The pin is not changed here; a
-   SpecScore release that reads `record` does not exist yet, and the pin is to be
-   bumped when one does, before any model is re-pinned in the current spelling.
+   runs `specscore graph lint` over each HCL source. It reads both spellings of
+   ModelSpec and uses SpecScore's HCL parser to check the syntax, references
+   (to a record type or a component), reserved names, duplicate record types and
+   enum values, and to refuse the removed and reserved constructs. It does not
+   check duplicate field names, a key that names no field, an unsupported field
+   type, or a setting it does not know on a record type or a field; `npm run
+   check` does, with the registry's own parser. For a source in the earlier
+   spelling the script prints the registry's `notice:` (naming `modelspec rewrite
+   --write`); SpecScore's own advisory finding for it is ignored
+   (`--ignore graph-model-deprecated-spelling`), so that the notice appears once.
+   A notice never changes the exit status.
    The SpecScore release is pinned by version and SHA-256, and
    the hash is checked before every run, not only after a download: the cached
    archive must match it (or is downloaded again), and the binary is unpacked
