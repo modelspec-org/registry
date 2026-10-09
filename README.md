@@ -386,31 +386,49 @@ constraint of the collection definitions.
 
 ### What ModelSpec gives the checks, and what it does not yet
 
-ModelSpec is specified, but its tooling is not all published. As of
-[`specscore/modelspec@82dfe38`](https://github.com/specscore/modelspec/tree/82dfe38cef1dbdd88b915734502b14b6df0a8f39):
+ModelSpec's specification renamed three words in October 2026: `entity` became
+`record`, `property` became `field` and the `entity =` setting became `record =`
+in HCL, and the JSON identifier `1.0-draft` became `1.0-draft-2` with the keys
+`records`, `fields` and `record` for `entities`, `properties` and `entity`. The
+registry reads both spellings, as the specification asks of every reader
+([`specscore/modelspec@133134b`](https://github.com/specscore/modelspec/tree/133134b255ad7e94c9c838011605bb62c9675888),
+`spec/core-model.md`, "Deprecated Spellings"):
 
-- **No JSON Schema is published yet.** Its JSON format and its
-  [decision 0010](https://github.com/specscore/modelspec/blob/main/spec/decisions/0010-json-schema-publication.md)
-  promise `schema/modelspec-ast-1.0-draft.schema.json`, but `schema/` holds only
-  a README. So the registry cannot validate the JSON AST against a published
-  schema, and does not pin one. It implements the structural checks that the
-  JSON format document lists (`scripts/lib/modelspec.mjs`, the same code that
-  `meaninggraph/core` and `datatug/chinookdb` use). When the schema is
-  published, pin it and use it here.
-- **ModelSpec has no parser or serializer of its own.** The only HCL parser is
-  SpecScore's, a Go program that checks a source but does not write JSON. So
-  "the JSON AST matches the HCL source" is checked with a small converter in
-  this repository for the HCL ModelSpec v0 allows (entities, components and
-  enums, with literal values), which writes the JSON AST from the source and
+- **Both spellings are accepted.** A model pinned in the earlier spelling stays
+  valid. `npm run check` and `npm run lint:hcl` print one `notice:` line for each
+  registry record whose files are in the earlier spelling, naming
+  `modelspec rewrite --write`; a notice never changes the exit status. A JSON
+  twin must be in the vocabulary of its HCL source (an HCL file that holds any
+  earlier word is exported as `1.0-draft`, one in the current spelling alone as
+  `1.0-draft-2`, as `modelspec export` does), and a JSON document that mixes
+  the two vocabularies is refused.
+- **`index.json` is unchanged.** It still has the keys `entities` and
+  `properties`, whatever the spelling of the model; only a model's own
+  `modelspec` value shows the identifier its JSON declares.
+- **Removed and reserved words are refused**, with a message that names the word:
+  `collection`, `recordset` and `column` were removed, and `projection`, `index`
+  and `migration` are reserved with no content, as HCL blocks and, where the
+  specification names one, as top-level JSON fields. `records` joins the reserved
+  concept names.
+
+What the checks implement and what they do not:
+
+- **They do not validate against the JSON Schemas ModelSpec publishes** at
+  <https://modelspec.org/schema/> (`modelspec-ast-1.0-draft-2.schema.json` and
+  `modelspec-ast-1.0-draft.schema.json`). They implement the structural checks
+  that the JSON format document lists (`scripts/lib/modelspec.mjs`, the same code
+  that `meaninggraph/core` and `datatug/chinookdb` use) in both vocabularies.
+- **The only HCL-to-JSON converter besides the reference CLI is a small one in
+  this repository**, for the HCL ModelSpec v0 allows (records, components and
+  enums, with literal values). It writes the JSON AST from the source and
   compares it with the published one, ignoring the module (HCL has nowhere to
-  state it), the order of names and the layout. A source with collections,
-  recordsets, projections, `index` blocks or expressions is refused rather than
-  guessed at (so a model that declares an index cannot be registered yet), and
-  so is a module-qualified reference to another module (ModelSpec's
+  state it), the order of names and the layout. A source with a removed or
+  reserved block, an expression or a top-level setting is refused rather than
+  guessed at, and so is a module-qualified reference to another module
+  (ModelSpec's
   [decision 0014](https://github.com/specscore/modelspec/blob/main/spec/decisions/0014-module-qualified-references.md)
   leaves finding modules to the consumer, and the registry has no resolver
-  yet). Full equivalence, for the whole language, awaits ModelSpec's own
-  tooling.
+  yet).
 
 ## Notifying the sites
 
