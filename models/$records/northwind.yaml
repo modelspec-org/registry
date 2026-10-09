@@ -2,7 +2,7 @@ format: modelspec-registry/draft-1
 title: Northwind small-business database
 description: >-
   The data model of the classic Northwind sample database: customers, employees,
-  orders, products, suppliers and related tables. Its entities and properties
+  orders, products, suppliers and related tables. Its record types and fields
   describe the pinned upstream SQLite schema; any copy of Northwind uses this
   model.
 status: draft

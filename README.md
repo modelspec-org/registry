@@ -28,7 +28,7 @@ one public address and a pinned, checked version. That makes three things
 possible:
 
 - **Start a project from a published model.** Instead of defining Chinook's
-  eleven entities again, a new project looks the address up, reads the two
+  eleven record types again, a new project looks the address up, reads the two
   files at the pinned commit and starts from them.
 - **Show that several databases are the same model.** If two hosters each
   serve a database of Chinook, and both name `modelspec://github.com/demo-db/chinook/chinook`

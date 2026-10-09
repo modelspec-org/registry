@@ -1,11 +1,11 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:6123418ee1c9162fdaee7d6c7c1f8ccb88b375f221d7d1154c06bd6bdac74f10",
+  "checksum": "sha256:5e3fe36bca982a68c0231168bdf229621f3bdb81fabc8b236bc3290b4fcf8f73",
   "models": [
     {
       "id": "adventureworks",
       "title": "AdventureWorks OLTP",
-      "description": "The ModelSpec for Microsoft's AdventureWorks OLTP sample, derived from the pinned SQL Server 2025 sample installer fixture. It describes the source tables and properties as a reusable model for copies of this database.",
+      "description": "The ModelSpec for Microsoft's AdventureWorks OLTP sample, derived from the pinned SQL Server 2025 sample installer fixture. It describes the source tables and fields as a reusable model for copies of this database.",
       "status": "draft",
       "homepage": "https://demodb.dev/adventureworks/",
       "address": "modelspec://github.com/demo-db/adventureworks/adventureworks",
@@ -3707,7 +3707,7 @@
     {
       "id": "chinook",
       "title": "Chinook music store",
-      "description": "The data model of the Chinook sample database: a digital music store with artists, albums, tracks, playlists, customers, employees and invoices, as 11 entities whose names are the upstream table and column names. Anything that stores Chinook, such as a SQLite file, a CSV export or an OpenVaultDB database, is a copy of this model.",
+      "description": "The data model of the Chinook sample database: a digital music store with artists, albums, tracks, playlists, customers, employees and invoices, as 11 record types whose names are the upstream table and column names. Anything that stores Chinook, such as a SQLite file, a CSV export or an OpenVaultDB database, is a copy of this model.",
       "status": "draft",
       "homepage": "https://chinook.demodb.dev/model/",
       "address": "modelspec://github.com/demo-db/chinook/chinook",
@@ -4990,7 +4990,7 @@
     {
       "id": "northwind",
       "title": "Northwind small-business database",
-      "description": "The data model of the classic Northwind sample database: customers, employees, orders, products, suppliers and related tables. Its entities and properties describe the pinned upstream SQLite schema; any copy of Northwind uses this model.",
+      "description": "The data model of the classic Northwind sample database: customers, employees, orders, products, suppliers and related tables. Its record types and fields describe the pinned upstream SQLite schema; any copy of Northwind uses this model.",
       "status": "draft",
       "homepage": "https://northwind.demodb.dev/model/",
       "address": "modelspec://github.com/demo-db/northwind/northwind",
@@ -6321,7 +6321,7 @@
     {
       "id": "sakila",
       "title": "Sakila video rental sample",
-      "description": "The MySQL Sakila sample model for films, actors, customers, rentals, payments, stores and staff, represented by its 16 native table entities.",
+      "description": "The MySQL Sakila sample model for films, actors, customers, rentals, payments, stores and staff, represented by its 16 native table record types.",
       "status": "draft",
       "homepage": "https://sakila.demodb.dev/model/",
       "address": "modelspec://github.com/demo-db/sakila/sakila",

@@ -3,7 +3,7 @@ title: Chinook music store
 description: >-
   The data model of the Chinook sample database: a digital music store with
   artists, albums, tracks, playlists, customers, employees and invoices, as 11
-  entities whose names are the upstream table and column names. Anything that
+  record types whose names are the upstream table and column names. Anything that
   stores Chinook, such as a SQLite file, a CSV export or an OpenVaultDB
   database, is a copy of this model.
 status: draft

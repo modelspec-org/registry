@@ -3,7 +3,7 @@ title: AdventureWorks OLTP
 description: >-
   The ModelSpec for Microsoft's AdventureWorks OLTP sample, derived from the
   pinned SQL Server 2025 sample installer fixture. It describes the source
-  tables and properties as a reusable model for copies of this database.
+  tables and fields as a reusable model for copies of this database.
 status: draft
 homepage: https://demodb.dev/adventureworks/
 address: modelspec://github.com/demo-db/adventureworks/adventureworks
