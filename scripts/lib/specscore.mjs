@@ -13,11 +13,17 @@ import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const version = '0.54.2';
+export const version = '0.55.0';
 export const builds = {
-  'linux/x64': { asset: 'linux_amd64', sha: 'e13ddf1543768bbe1f4573bc99202f6e5729b3d2b140c37bad972bdfdf8af12a' },
-  'darwin/arm64': { asset: 'darwin_arm64', sha: 'ddc0861c589961b8392607473cd767f07746dad733bdd0af713aa13c69f133f8' },
+  'linux/x64': { asset: 'linux_amd64', sha: '17b0ec1d1f6c5f4a047f9c007355caa27e8507ad7f52e78546967579169cb764' },
+  'darwin/arm64': { asset: 'darwin_arm64', sha: '595d634318df68fb890af06800d299193e7474fba2494d6ca74976448fb75245' },
 };
+
+// The arguments of the lint run. `--severity info` shows every finding in a failing run. The
+// advisory finding for a source in the earlier spelling is ignored: the script prints the
+// registry's own notice for it (sourceNotices), which names the file in the registry and
+// not the throwaway path SpecScore would, and one notice is enough.
+export const lintArguments = ['graph', 'lint', '--severity', 'info', '--ignore', 'graph-model-deprecated-spelling'];
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 

@@ -16,8 +16,8 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { addressOf, cacheRepoSound, defaultBranch, defaultCacheDir, entryFor, gitEnv, git, historyPath, isRepositoryPath, maxFileBytes, onBranch, openCommit, repositoryHosts, repositoryKey, setGitProtocols, trackedCacheProblems } from './lib/git.mjs';
 import { astDifferences, describeModel, hclUsesEarlier, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './lib/modelspec.mjs';
 import { homepageProblem, maxHomepageLength, publicHttpsProblem } from './lib/urls.mjs';
-import { specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
-import { buildIndex, checkRegistry, checkReport, declaredLicence, earlierSpellingNotice, lintOkLine, loadModels, readRegistry, recordProblems, registryFormat, sourceNotices, wellFormed } from './lib/registry.mjs';
+import { lintArguments, specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
+import { buildIndex, checkRegistry, checkReport, declaredLicence, earlierSpellingNotice, loadModels, readRegistry, recordProblems, registryFormat, sourceNotices, wellFormed } from './lib/registry.mjs';
 
 // The local repositories that stand in for https URLs are file:// URLs, at
 // https://example.test/fixtures/<name>; the tests allow that host and protocol.
@@ -1327,7 +1327,7 @@ test('the pinned linter is verified before every run, and a binary lying in the 
   const evil = archiveOf(planted);
   const build = { asset: 'test_amd64', sha: sha256(good) };
   const table = { 'test/x64': build };
-  const archiveName = 'specscore_0.54.2_test_amd64.tar.gz';
+  const archiveName = 'specscore_0.55.0_test_amd64.tar.gz';
   let downloads = 0;
   const download = (bytes) => async (name) => { downloads++; assert.equal(name, archiveName); return bytes; };
   const run = async (cache, bytes = good) => {
@@ -1337,8 +1337,8 @@ test('the pinned linter is verified before every run, and a binary lying in the 
 
   // Planted: binaries and archives already lying in the cache, in every layout.
   const cache = freshCache();
-  mkdirSync(join(cache, 'specscore-0.54.2-test_amd64'), { recursive: true });
-  writeFileSync(join(cache, 'specscore-0.54.2-test_amd64', 'specscore'), planted, { mode: 0o755 });
+  mkdirSync(join(cache, 'specscore-0.55.0-test_amd64'), { recursive: true });
+  writeFileSync(join(cache, 'specscore-0.55.0-test_amd64', 'specscore'), planted, { mode: 0o755 });
   writeFileSync(join(cache, 'specscore'), planted, { mode: 0o755 });
   assert.equal(execFileSync(join(cache, 'specscore')).toString(), 'planted\n');
   rmSync(marker);
@@ -1780,19 +1780,11 @@ test('check.mjs prints notices on standard error only, and a notice never change
   assert.match(report.stderr[0], /^notice: models\/\$records\/fixture\.yaml: .* modelspec rewrite --write rewrites them$/);
 });
 
-test('lint-hcl.mjs: a notice for a source in the earlier spelling, and an ok line that says plainly what was checked', () => {
-  const version = '0.54.2';
-  const args = (text) => ({ file: 'models/$records/m.yaml', sourceFile: 'model/m.modelspec.hcl', text, specscoreVersion: version });
-  // The earlier spelling: notice, and the linter's full verdict.
+test('lint-hcl.mjs: one notice for a source in the earlier spelling, none for the current one, and SpecScore\'s own advisory finding is ignored', () => {
   assert.equal(sourceNotices('models/$records/m.yaml', 'model/m.modelspec.hcl', fixtureHcl).length, 1);
-  assert.equal(lintOkLine(args(fixtureHcl)), 'ok: models/$records/m.yaml: model/m.modelspec.hcl passes specscore graph lint (specscore 0.54.2)');
-  // The current spelling, or any file with a record block: SpecScore skips the block.
-  for (const text of [currentHcl, `${fixtureHcl}\nrecord "Extra" {\n  field "id" {\n    type = "int"\n  }\n}\n`]) {
-    const line = lintOkLine(args(text));
-    assert.match(line, /^ok: models\/\$records\/m\.yaml: model\/m\.modelspec\.hcl parses under specscore graph lint \(specscore 0\.54\.2\), which checks only its syntax here: at this release it skips record blocks, and npm run check validates the model$/);
-  }
   assert.deepEqual(sourceNotices('r', 'f', currentHcl), []);
-  // A source the registry parser cannot read is the linter's to judge: no notice, the plain line.
+  // A source the registry parser cannot read is the linter's to judge: no notice.
   assert.deepEqual(sourceNotices('r', 'f', 'record "A" {'), []);
-  assert.match(lintOkLine(args('record "A" {')), /passes specscore graph lint/);
+  // The linter is told to ignore its own finding for the earlier spelling, and only that one, so a source gets one notice.
+  assert.deepEqual(lintArguments, ['graph', 'lint', '--severity', 'info', '--ignore', 'graph-model-deprecated-spelling']);
 });

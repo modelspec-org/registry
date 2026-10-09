@@ -6,26 +6,28 @@
 // `specscore graph lint` is the only real ModelSpec HCL parser there is today
 // (https://github.com/specscore/specscore-cli). It reads ModelSpec sources from
 // a graph module's models/ directory, so each source is copied into a throwaway
-// tree with a module named like the record's `module`. It checks HCL syntax with
-// the real parser, reference resolution, reserved names, duplicate concepts and
-// enum values: what scripts/check.mjs cannot check with its own subset parser.
-// The release is pinned by version and SHA-256, the same one datatug/chinookdb
-// lints with; its archive is verified against the pin before every run and the
-// binary is unpacked fresh from it (scripts/lib/specscore.mjs). Caches live in
-// the per-user cache directory, never in the checkout. A source in the earlier
+// tree with a module named like the record's `module`. It reads both spellings of
+// ModelSpec, as the specification asks of every reader, and checks HCL syntax with
+// the real parser, reference resolution, reserved names, duplicate record types,
+// enum values, and refuses removed and reserved constructs. It does not check
+// duplicate field names, a key that names no field, an unsupported field type or a
+// setting it does not know on a record type or a field: scripts/check.mjs does.
+// The release is pinned by version and SHA-256; its archive is verified against
+// the pin before every run and the binary is unpacked fresh from it
+// (scripts/lib/specscore.mjs). Caches live in the per-user cache directory, never
+// in the checkout. A source in the earlier
 // spelling (entity, property; ModelSpec decision 0018) is valid and is linted as
-// it is; it is reported as a notice, which does not change the exit status.
-// The pinned release (0.54.2) does not read the current spelling: it parses a
-// `record` block and skips it, so for a source that has one only the syntax is
-// checked, and the `ok:` line says so (npm run check validates the model).
+// it is; the script reports it as a notice, which does not change the exit status.
+// SpecScore's own advisory finding for it is ignored (lintArguments), so a source
+// gets the registry's notice once.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultCacheDir, git, openCommit, trackedCacheProblems } from './lib/git.mjs';
-import { lintOkLine, readRegistry, recordProblems, sourceNotices, wellFormed } from './lib/registry.mjs';
-import { specscoreBinary } from './lib/specscore.mjs';
+import { readRegistry, recordProblems, sourceNotices, wellFormed } from './lib/registry.mjs';
+import { lintArguments, specscoreBinary } from './lib/specscore.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -57,8 +59,8 @@ for (const record of registry.models.filter(wellFormed)) {
     const models = join(tree, 'spec', 'graph', 'modules', data.module, 'models');
     mkdirSync(models, { recursive: true });
     copyFileSync(source, join(models, 'model.hcl'));
-    run(tree, 'graph', 'lint', '--severity', 'info');
-    console.log(lintOkLine({ file, sourceFile: data.source_file, text, specscoreVersion: run(tree, '--version').trim() }));
+    run(tree, ...lintArguments);
+    console.log(`ok: ${file}: ${data.source_file} passes specscore graph lint (specscore ${run(tree, '--version').trim()})`);
   } catch (error) {
     failed++;
     console.error(`error: ${file}: ${data.source_file}: ${String(error.stdout ?? '').trim() || String(error.stderr ?? error.message).trim()}`);

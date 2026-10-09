@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { isScalar, parse as parseYaml, parseDocument, visit } from 'yaml';
 import { addressOf, commitPattern, defaultBranch, defaultCacheDir, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey, trackedCacheProblems } from './git.mjs';
 import { homepageProblem } from './urls.mjs';
-import { astDifferences, describeModel, hclHasRecordBlock, hclUsesEarlier, parseHcl, parseJson, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './modelspec.mjs';
+import { astDifferences, describeModel, hclUsesEarlier, parseHcl, parseJson, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './modelspec.mjs';
 
 export const registryFormat = 'modelspec-registry/draft-1';
 export const statuses = ['draft', 'published', 'deprecated'];
@@ -229,18 +229,6 @@ export function earlierSpellingNotice(file, files) {
 // A source this module cannot parse gives none: the linter is the judge of that.
 export function sourceNotices(file, sourceFile, text) {
   try { return hclUsesEarlier(parseHcl(text)) ? [earlierSpellingNotice(file, [sourceFile])] : []; } catch { return []; }
-}
-
-// The `ok:` line lint-hcl.mjs prints for a source that SpecScore's linter accepted.
-// SpecScore at the pinned release parses a `record` block and skips it, so for a source
-// that has one the line says that only the syntax was checked and that `npm run check`
-// validates the model. It is never an error, and never changes the exit status.
-export function lintOkLine({ file, sourceFile, text, specscoreVersion }) {
-  let syntaxOnly = false;
-  try { syntaxOnly = hclHasRecordBlock(parseHcl(text)); } catch { /* the linter judged the source */ }
-  return syntaxOnly
-    ? `ok: ${file}: ${sourceFile} parses under specscore graph lint (specscore ${specscoreVersion}), which checks only its syntax here: at this release it skips record blocks, and npm run check validates the model`
-    : `ok: ${file}: ${sourceFile} passes specscore graph lint (specscore ${specscoreVersion})`;
 }
 
 // What check.mjs prints and its exit status, from the result of checkRegistry: notices
