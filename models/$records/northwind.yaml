@@ -2,14 +2,14 @@ format: modelspec-registry/draft-1
 title: Northwind small-business database
 description: >-
   The data model of the classic Northwind sample database: customers, employees,
-  orders, products, suppliers and related tables. Its entities and properties
+  orders, products, suppliers and related tables. Its record types and fields
   describe the pinned upstream SQLite schema; any copy of Northwind uses this
   model.
 status: draft
 homepage: https://northwind.demodb.dev/model/
 address: modelspec://github.com/demo-db/northwind/northwind
 repository: https://github.com/demo-db/northwind
-commit: e74726515c3833620b54b7a50d1d273276dd23c1
+commit: c07b4666734a3445b2b0c2fbaf84305dcdb1bf45
 module: northwind
 source_file: model/northwind.modelspec.hcl
 json_file: model/northwind.modelspec.json

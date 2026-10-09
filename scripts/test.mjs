@@ -199,7 +199,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.equal(chinook.records.length, 11);
   const pubs = committed.models.find((model) => model.key === 'pubs');
   assert.ok(pubs, 'the Pubs provider has a committed model record');
-  assert.equal(pubs.data.commit, '6c06c5c7395b03ff1a02c2b1a21485add3e1b65b');
+  assert.equal(pubs.data.commit, 'e99ca33330a043e23b2c5a665356fb8ad8d0b508');
   assert.equal(pubs.data.module, 'pubs');
   assert.deepEqual([pubs.data.source_file, pubs.data.json_file], ['model/pubs.modelspec.hcl', 'model/pubs.modelspec.json']);
   const pubsIndex = index.models.find((model) => model.id === 'pubs');
@@ -214,7 +214,7 @@ test('the committed records are well formed and the committed index.json is cons
   assert.ok(sakila, 'the Sakila provider has a committed model record');
   assert.deepEqual(
     [sakila.data.address, sakila.data.repository, sakila.data.commit, sakila.data.module, sakila.data.licence],
-    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', 'cb9a81a8cbedcd8831737f281f888d5d584fae85', 'sakila', 'BSD-3-Clause'],
+    ['modelspec://github.com/demo-db/sakila/sakila', 'https://github.com/demo-db/sakila', '113e54ad83c3e003a4fd195c893f2b19a921435c', 'sakila', 'BSD-3-Clause'],
   );
   const sakilaIndex = index.models.find((model) => model.id === 'sakila');
   assert.ok(sakilaIndex, 'the Sakila provider appears in the generated index');

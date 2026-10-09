@@ -8,7 +8,7 @@ status: draft
 homepage: https://pubs.demodb.dev/model/
 address: modelspec://github.com/demo-db/pubs/pubs
 repository: https://github.com/demo-db/pubs
-commit: 6c06c5c7395b03ff1a02c2b1a21485add3e1b65b
+commit: e99ca33330a043e23b2c5a665356fb8ad8d0b508
 module: pubs
 source_file: model/pubs.modelspec.hcl
 json_file: model/pubs.modelspec.json

@@ -7,15 +7,15 @@ the JSON AST), its licence and its maintainers.
 
 | Id | Address | Repository at commit | Status |
 |---|---|---|---|
-| `adventureworks` | `modelspec://github.com/demo-db/adventureworks/adventureworks` | [demo-db/adventureworks@5028a27](https://github.com/demo-db/adventureworks/tree/5028a27189b487d6fd8025fafc1307aada707fd2) | draft |
+| `adventureworks` | `modelspec://github.com/demo-db/adventureworks/adventureworks` | [demo-db/adventureworks@c91e06e](https://github.com/demo-db/adventureworks/tree/c91e06e9c12380e7709f66ab1e69cf7f858f67c1) | draft |
 | `chinook` | `modelspec://github.com/demo-db/chinook/chinook` | [demo-db/chinook@3e7bb31](https://github.com/demo-db/chinook/tree/3e7bb316d8a438eb7e5930067997a4e4543a275c) | draft |
 | `ecb-daily` | `modelspec://github.com/openvaultdb/ovdb/ecb` | [openvaultdb/ovdb@6751a14](https://github.com/openvaultdb/ovdb/tree/6751a14ae12bfeadbcc9a7c6aa6174c81d697e20) | draft |
-| `employees` | `modelspec://github.com/demo-db/employees/employees` | [demo-db/employees@2069e26](https://github.com/demo-db/employees/tree/2069e26e8fdb60bdb16507f75569a579cf3da7cf) | draft |
+| `employees` | `modelspec://github.com/demo-db/employees/employees` | [demo-db/employees@add7744](https://github.com/demo-db/employees/tree/add7744ddc5cefc535a7cbb09b3dffee41811ade) | draft |
 | `geonames` | `modelspec://github.com/ingitdb/geo-ingitdb/geonames` | [ingitdb/geo-ingitdb@6f4cf12](https://github.com/ingitdb/geo-ingitdb/tree/6f4cf1269bc393048f6b204069135a62f0bb6c02) | draft |
-| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@e747265](https://github.com/demo-db/northwind/tree/e74726515c3833620b54b7a50d1d273276dd23c1) | draft |
-| `pubs` | `modelspec://github.com/demo-db/pubs/pubs` | [demo-db/pubs@6c06c5c](https://github.com/demo-db/pubs/tree/6c06c5c7395b03ff1a02c2b1a21485add3e1b65b) | draft |
+| `northwind` | `modelspec://github.com/demo-db/northwind/northwind` | [demo-db/northwind@c07b466](https://github.com/demo-db/northwind/tree/c07b4666734a3445b2b0c2fbaf84305dcdb1bf45) | draft |
+| `pubs` | `modelspec://github.com/demo-db/pubs/pubs` | [demo-db/pubs@e99ca33](https://github.com/demo-db/pubs/tree/e99ca33330a043e23b2c5a665356fb8ad8d0b508) | draft |
 | `ror` | `modelspec://github.com/ingitdb/ror-ingitdb/ror` | [ingitdb/ror-ingitdb@dc78c1e](https://github.com/ingitdb/ror-ingitdb/tree/dc78c1e929f1f10018f8c39e690351059a50c71f) | draft |
-| `sakila` | `modelspec://github.com/demo-db/sakila/sakila` | [demo-db/sakila@cb9a81a](https://github.com/demo-db/sakila/tree/cb9a81a8cbedcd8831737f281f888d5d584fae85) | draft |
+| `sakila` | `modelspec://github.com/demo-db/sakila/sakila` | [demo-db/sakila@113e54a](https://github.com/demo-db/sakila/tree/113e54ad83c3e003a4fd195c893f2b19a921435c) | draft |
 
 Browse the generated registry at <https://modelspec.org/registry/>.
 This repository is the data behind that page.
@@ -28,7 +28,7 @@ one public address and a pinned, checked version. That makes three things
 possible:
 
 - **Start a project from a published model.** Instead of defining Chinook's
-  eleven entities again, a new project looks the address up, reads the two
+  eleven record types again, a new project looks the address up, reads the two
   files at the pinned commit and starts from them.
 - **Show that several databases are the same model.** If two hosters each
   serve a database of Chinook, and both name `modelspec://github.com/demo-db/chinook/chinook`

@@ -2,12 +2,12 @@ format: modelspec-registry/draft-1
 title: Sakila video rental sample
 description: >-
   The MySQL Sakila sample model for films, actors, customers, rentals,
-  payments, stores and staff, represented by its 16 native table entities.
+  payments, stores and staff, represented by its 16 native table record types.
 status: draft
 homepage: https://sakila.demodb.dev/model/
 address: modelspec://github.com/demo-db/sakila/sakila
 repository: https://github.com/demo-db/sakila
-commit: cb9a81a8cbedcd8831737f281f888d5d584fae85
+commit: 113e54ad83c3e003a4fd195c893f2b19a921435c
 module: sakila
 source_file: model/sakila.modelspec.hcl
 json_file: model/sakila.modelspec.json
