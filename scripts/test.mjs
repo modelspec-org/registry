@@ -14,10 +14,10 @@ import { fileURLToPath } from 'node:url';
 import { after, test } from 'node:test';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { addressOf, cacheRepoSound, defaultBranch, defaultCacheDir, entryFor, gitEnv, git, historyPath, isRepositoryPath, maxFileBytes, onBranch, openCommit, repositoryHosts, repositoryKey, setGitProtocols, trackedCacheProblems } from './lib/git.mjs';
-import { astDifferences, describeModel, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel } from './lib/modelspec.mjs';
+import { astDifferences, describeModel, hclUsesEarlier, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './lib/modelspec.mjs';
 import { homepageProblem, maxHomepageLength, publicHttpsProblem } from './lib/urls.mjs';
 import { specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
-import { buildIndex, checkRegistry, declaredLicence, loadModels, readRegistry, recordProblems, registryFormat, wellFormed } from './lib/registry.mjs';
+import { buildIndex, checkRegistry, declaredLicence, earlierSpellingNotice, loadModels, readRegistry, recordProblems, registryFormat, sourceNotices, wellFormed } from './lib/registry.mjs';
 
 // The local repositories that stand in for https URLs are file:// URLs, at
 // https://example.test/fixtures/<name>; the tests allow that host and protocol.
@@ -110,6 +110,8 @@ entity "Album" {
   }
 }
 `;
+// The same model in the current spelling, as `modelspec rewrite` writes it.
+const currentHcl = fixtureHcl.replaceAll('entity "', 'record "').replaceAll('property "', 'field "').replace('entity   =', 'record   =');
 const moduleFor = (name) => ({ id: `example.test/fixtures/${name}/model/fixture`, name: 'fixture', version: '0.1.0' });
 const jsonFor = (name, hcl = fixtureHcl, module = moduleFor(name)) => toModelspecJson(parseHcl(hcl), module);
 
@@ -832,7 +834,8 @@ test('a JSON file that is not JSON, or not an object, fails', () => {
 
 test('a JSON AST that breaks the structural checks of the ModelSpec specification fails', () => {
   const cases = [
-    ['wrong-version', (json) => { json.modelspec = '2.0'; }, /modelspec must be "1.0-draft"/],
+    ['wrong-version', (json) => { json.modelspec = '2.0'; }, /modelspec must be "1\.0-draft-2" \(or "1\.0-draft", the earlier spelling\)/],
+    ['no-version', (json) => { delete json.modelspec; }, /modelspec must be "1\.0-draft-2"/],
     ['no-module-id', (json) => { delete json.module.id; }, /module\.id and module\.version are required/],
     ['no-module-version', (json) => { delete json.module.version; }, /module\.id and module\.version are required/],
     ['module-not-object', (json) => { json.module = 'x'; }, /module must be an object/],
@@ -1511,4 +1514,233 @@ test('removed constructs and reserved words are refused, in HCL and in JSON, and
   const json = jsonFor('index-field');
   json.index = {};
   assert.deepEqual(validateModel(json), []);
+});
+
+// ---- both spellings ---------------------------------------------------------
+
+const toCurrentJson = (json) => JSON.parse(JSON.stringify(json)
+  .replace('"modelspec":"1.0-draft"', '"modelspec":"1.0-draft-2"')
+  .replaceAll('"entities":', '"records":').replaceAll('"properties":', '"fields":').replaceAll('"entity":', '"record":'));
+
+test('the two vocabularies are named in one table', () => {
+  assert.deepEqual(vocabularies, {
+    earlier: { identifier: '1.0-draft', record: 'entity', field: 'property', records: 'entities', fields: 'properties' },
+    current: { identifier: '1.0-draft-2', record: 'record', field: 'field', records: 'records', fields: 'fields' },
+  });
+  assert.equal(vocabularyOf({ modelspec: '1.0-draft' }), vocabularies.earlier);
+  assert.equal(vocabularyOf({ modelspec: '1.0-draft-2' }), vocabularies.current);
+  assert.equal(vocabularyOf({ modelspec: '2.0' }), undefined);
+  assert.equal(vocabularyOf(null), undefined);
+});
+
+test('an HCL source in the current spelling converts to a 1.0-draft-2 document the checks accept', () => {
+  const json = jsonFor('current', currentHcl);
+  assert.equal(json.modelspec, '1.0-draft-2');
+  assert.deepEqual(Object.keys(json), ['modelspec', 'module', 'records']);
+  assert.deepEqual(json.records.Album.fields.ArtistId, { record: 'Artist', required: true });
+  assert.deepEqual(validateModel(json), []);
+  // It is the earlier document with the earlier words replaced, and nothing else.
+  assert.deepEqual(astDifferences(json, toCurrentJson(jsonFor('current'))), []);
+  assert.equal(hclUsesEarlier(parseHcl(currentHcl)), false);
+  assert.equal(hclUsesEarlier(parseHcl(fixtureHcl)), true);
+  assert.deepEqual(problemsOf(modelOrigin('current-model', { hcl: currentHcl })), []);
+});
+
+test('a source that mixes the spellings converts in the earlier vocabulary, as modelspec export does', () => {
+  const mixed = `record "Customer" {
+  key = ["id"]
+  property "id" {
+    type = "uuid"
+  }
+}
+
+entity "Order" {
+  key = ["id"]
+  field "id" {
+    type = "uuid"
+  }
+  field "customer" {
+    entity = "Customer"
+  }
+  property "shipTo" {
+    record = "Customer"
+  }
+}
+`;
+  const json = jsonFor('mixed', mixed);
+  assert.equal(json.modelspec, '1.0-draft');
+  assert.deepEqual(JSON.parse(JSON.stringify(json.entities.Order.properties)), { id: { type: 'uuid' }, customer: { entity: 'Customer' }, shipTo: { entity: 'Customer' } });
+  assert.deepEqual(validateModel(json), []);
+  assert.equal(hclUsesEarlier(parseHcl(mixed)), true);
+  // One setting of the earlier spelling anywhere is enough, in a component too.
+  const inComponent = 'component "C" {\n  field "x" {\n    entity = "A"\n  }\n}\nrecord "A" {\n  field "id" {\n    type = "int"\n  }\n}\n';
+  assert.equal(jsonFor('mixed-component', inComponent).modelspec, '1.0-draft');
+  assert.deepEqual(jsonFor('mixed-component', inComponent).components.C.fields.x, { entity: 'A' });
+  assert.equal(jsonFor('only-component', 'component "C" {\n  field "x" {\n    type = "int"\n  }\n}\n').modelspec, '1.0-draft-2');
+  assert.deepEqual(problemsOf(modelOrigin('mixed-model', { hcl: mixed })), []);
+  // A field and a property of one name are one name twice.
+  assert.throws(() => toModelspecJson(parseHcl('record "A" {\n  field "id" {\n    type = "int"\n  }\n  property "id" {\n    type = "int"\n  }\n}\n'), moduleFor('dup')), /duplicate property "id" in record "A"/);
+});
+
+test('a member that carries both reference words is refused; a property in a component is refused', () => {
+  const both = currentHcl.replace('    record   = "Artist"', '    record   = "Artist"\n    entity   = "Artist"');
+  assert.throws(() => toModelspecJson(parseHcl(both), moduleFor('both')), /line \d+: field "ArtistId" has both entity and record; a member refers to one record type/);
+  expectProblem(problemsOf(modelOrigin('both-words', { hcl: both, json: jsonFor('both-words', currentHcl) })), /fixture\.modelspec\.hcl: line \d+: field "ArtistId" has both entity and record/);
+  assert.throws(() => toModelspecJson(parseHcl('component "C" {\n  property "x" {\n    type = "int"\n  }\n}\n'), moduleFor('prop')), /component "C" cannot contain a property block \(this converter supports field\)/);
+  assert.throws(() => toModelspecJson(parseHcl('record "A" {\n  record = "B"\n}\n'), moduleFor('rec')), /unsupported record attribute record/);
+});
+
+test('removed constructs and reserved words are refused in the current spelling too', () => {
+  for (const word of ['collection', 'recordset', 'column', 'projection', 'index', 'migration']) {
+    const hcl = currentHcl.replace('field "Name" {', `${word} "x" {\n  }\n\n  field "Name" {`);
+    expectProblem(problemsOf(modelOrigin(`current-refused-${word}`, { hcl, json: jsonFor('current-refused', currentHcl) })), new RegExp(`fixture\\.modelspec\\.hcl: line \\d+: the ${word} block `));
+  }
+  for (const field of ['collections', 'recordsets', 'projections', 'migrations']) {
+    const json = jsonFor(`current-${field}`, currentHcl);
+    json[field] = {};
+    assert.match(validateModel(json).join('\n'), new RegExp(`the ${field} field `));
+  }
+});
+
+test('records is a reserved name beside entities, in both vocabularies', () => {
+  for (const [identifier, records, fields] of [['1.0-draft', 'entities', 'properties'], ['1.0-draft-2', 'records', 'fields']]) {
+    for (const name of ['records', 'entities']) {
+      const json = { modelspec: identifier, module: { id: 'a/b', name: 'b', version: '1' }, [records]: { [name]: { [fields]: {} } } };
+      assert.deepEqual(validateModel(json), [`${name} is a reserved name`]);
+    }
+  }
+});
+
+test('a JSON document is in the vocabulary its identifier names; a key of the other one is an error', () => {
+  const earlierJson = jsonFor('earlier');
+  const currentJson = jsonFor('current', currentHcl);
+  assert.deepEqual(validateModel(earlierJson), []);
+  assert.deepEqual(validateModel(currentJson), []);
+  const cases = [
+    ['1.0-draft-2 with entities', (json) => { json.entities = json.records; delete json.records; }, /"entities" is a key of format 1\.0-draft; this document says "1\.0-draft-2", where it is "records"/],
+    ['1.0-draft-2 with properties', (json) => { json.records.Artist.properties = json.records.Artist.fields; }, /record Artist: "properties" is a key of format 1\.0-draft; .*where it is "fields"/],
+    ['1.0-draft-2 with entity', (json) => { json.records.Album.fields.ArtistId.entity = 'Artist'; }, /Album\.ArtistId: "entity" is a key of format 1\.0-draft; .*where it is "record"/],
+    ['1.0-draft-2 with entity in a component', (json) => { json.components = { C: { fields: { x: { entity: 'Artist' } } } }; }, /C\.x: "entity" is a key of format 1\.0-draft/],
+  ];
+  for (const [name, change, pattern] of cases) {
+    const json = structuredClone(currentJson);
+    change(json);
+    expectProblem(validateModel(json), pattern);
+    expectProblem(problemsOf(modelOrigin(`current-json-${name.replaceAll(' ', '-')}`, { hcl: currentHcl, json })), pattern);
+  }
+  const earlierCases = [
+    ['1.0-draft with records', (json) => { json.records = json.entities; delete json.entities; }, /"records" is a key of format 1\.0-draft-2; this document says "1\.0-draft", where it is "entities"/],
+    ['1.0-draft with fields', (json) => { json.entities.Artist.fields = json.entities.Artist.properties; }, /entity Artist: "fields" is a key of format 1\.0-draft-2; .*where it is "properties"/],
+    ['1.0-draft with record', (json) => { json.entities.Album.properties.ArtistId.record = 'Artist'; }, /Album\.ArtistId: "record" is a key of format 1\.0-draft-2; .*where it is "entity"/],
+    ['1.0-draft with record in a component', (json) => { json.components = { C: { fields: { x: { record: 'Artist' } } } }; }, /C\.x: "record" is a key of format 1\.0-draft-2/],
+  ];
+  for (const [name, change, pattern] of earlierCases) {
+    const json = structuredClone(earlierJson);
+    change(json);
+    expectProblem(validateModel(json), pattern);
+    expectProblem(problemsOf(modelOrigin(`earlier-json-${name.replaceAll(' ', '-')}`, { json })), pattern);
+  }
+  // Each message is the only one about its key: the key is not also an unsupported attribute.
+  const stray = structuredClone(currentJson);
+  stray.records.Album.fields.ArtistId.entity = 'Artist';
+  assert.equal(validateModel(stray).filter((problem) => /unsupported attribute/.test(problem)).length, 0);
+});
+
+test('the current vocabulary has the same structural checks as the earlier one, in its own words', () => {
+  const cases = [
+    ['records-array', (json) => { json.records = []; }, /records must be an object keyed by name/],
+    ['no-fields', (json) => { delete json.records.Artist.fields; }, /records Artist must be an object with fields/],
+    ['key-not-list', (json) => { json.records.Artist.key = 'ArtistId'; }, /record Artist key must be a list of field names/],
+    ['empty-key', (json) => { json.records.Artist.key = []; }, /record Artist key must be a non-empty list when present/],
+    ['duplicate-key-field', (json) => { json.records.Artist.key = ['ArtistId', 'ArtistId']; }, /record Artist key ArtistId is duplicated/],
+    ['key-not-field', (json) => { json.records.Artist.key = ['Nope']; }, /record Artist key Nope is not a field/],
+    ['unknown-record', (json) => { json.records.Album.fields.ArtistId.record = 'Nope'; }, /Album\.ArtistId references unknown record Nope/],
+    ['two-kinds', (json) => { json.records.Artist.fields.Name.record = 'Album'; }, /Artist\.Name must have exactly one of type, record, component/],
+    ['unknown-component', (json) => { json.records.Artist.use = ['Nope']; }, /record Artist references unknown component Nope/],
+    ['use-not-list', (json) => { json.records.Artist.use = 'Nope'; }, /record Artist use must be a list of component names/],
+    ['record-and-enum', (json) => { json.enums = { Artist: { values: ['a'] } }; }, /Artist is declared as both records and enums/],
+    ['qualified-reference', (json) => { json.records.Album.fields.ArtistId.record = 'core.Artist'; }, /names record core\.Artist of another module/],
+    ['no-records', (json) => { json.records = {}; }, /a registered model has at least one record$/],
+  ];
+  for (const [name, change, pattern] of cases) {
+    const json = jsonFor(name, currentHcl);
+    change(json);
+    const problems = problemsOf(modelOrigin(`current-${name}`, { hcl: currentHcl, json }));
+    expectProblem(problems, pattern);
+    assert.match(problems[0], /^models\/\$records\/fixture\.yaml: /);
+  }
+});
+
+test('a JSON twin must be in the vocabulary of its HCL source', () => {
+  const earlierJson = jsonFor('earlier');
+  const currentJson = jsonFor('current', currentHcl);
+  const twinCurrentJson = jsonFor('twin-current', currentHcl);
+  assert.deepEqual(astDifferences(currentJson, currentJson), []);
+  assert.deepEqual(astDifferences(earlierJson, earlierJson), []);
+  const [difference, ...rest] = astDifferences(currentJson, earlierJson);
+  assert.deepEqual(rest, []);
+  assert.match(difference, /^modelspec is "1\.0-draft-2" in the HCL source but "1\.0-draft" in the JSON AST; the two must be in the same vocabulary \(modelspec rewrite --write brings the pair in line\)$/);
+  assert.equal(astDifferences(earlierJson, currentJson).length, 1);
+  // Through the registry: both twins are valid documents, and only the pair is wrong.
+  expectProblem(problemsOf(modelOrigin('twin-current-source', { hcl: currentHcl, json: earlierJson })), /fixture\.modelspec\.json does not match model\/fixture\.modelspec\.hcl: modelspec is "1\.0-draft-2" in the HCL source but "1\.0-draft" in the JSON AST/);
+  expectProblem(problemsOf(modelOrigin('twin-earlier-source', { hcl: fixtureHcl, json: currentJson })), /does not match model\/fixture\.modelspec\.hcl: modelspec is "1\.0-draft" in the HCL source but "1\.0-draft-2" in the JSON AST/);
+  assert.deepEqual(problemsOf(modelOrigin('twin-current', { hcl: currentHcl, json: twinCurrentJson })), []);
+  // A pair of mixed sources and an earlier twin agree.
+  assert.deepEqual(problemsOf(modelOrigin('twin-mixed', { hcl: fixtureHcl.replace('entity "Album"', 'record "Album"').replace('property "AlbumId"', 'field "AlbumId"') })), []);
+});
+
+test('a model in the current spelling gives the index entry of the same model in the earlier one, and the index keeps its keys', () => {
+  const entries = [fixtureHcl, currentHcl].map((hcl, i) => {
+    const source = modelOrigin(`index-spelling-${i}`, { hcl });
+    const dir = registry({ fixture: fixtureRecord(source) });
+    assert.deepEqual(check(dir).problems, []);
+    return loadModels(options(dir)).entries[0];
+  });
+  const [earlierEntry, currentEntry] = entries;
+  assert.deepEqual(Object.keys(currentEntry), Object.keys(earlierEntry));
+  assert.equal(currentEntry.modelspec, '1.0-draft-2');
+  assert.equal(earlierEntry.modelspec, '1.0-draft');
+  const { modelspec: _a, address: _b, repository: _c, commit: _d, module_id: _e, ...currentRest } = currentEntry;
+  const { modelspec: _f, address: _g, repository: _h, commit: _i, module_id: _j, ...earlierRest } = earlierEntry;
+  assert.deepEqual(currentRest, earlierRest);
+  assert.ok(Object.hasOwn(currentEntry, 'entities') && Object.hasOwn(currentEntry, 'components'));
+  assert.equal(Object.hasOwn(currentEntry, 'records'), false);
+  assert.ok(Object.hasOwn(currentEntry.entities[0], 'properties'));
+  assert.equal(Object.hasOwn(currentEntry.entities[0], 'fields'), false);
+  assert.equal(currentEntry.entities[1].properties[1].references, 'Artist');
+});
+
+test('describeModel gives one description whichever spelling the source uses', () => {
+  const earlierSource = 'component "Audit" {\n  field "by" {\n    entity = "B"\n  }\n}\nentity "A" {\n  key = ["x"]\n  use = ["Audit"]\n  property "x" {\n    type = "int"\n    required = true\n  }\n  property "y" {\n    entity = "B"\n  }\n  property "z" {\n    component = "Audit"\n  }\n}\nentity "B" {\n  property "id" {\n    type = "int"\n  }\n}\n';
+  const currentSource = earlierSource.replaceAll('entity "', 'record "').replaceAll('property "', 'field "').replaceAll('entity =', 'record =');
+  assert.notEqual(currentSource, earlierSource);
+  assert.deepEqual(describeModel(parseHcl(currentSource)), describeModel(parseHcl(earlierSource)));
+  const mixed = earlierSource.replace('entity "B"', 'record "B"').replace('property "id"', 'field "id"').replace('entity = "B"\n  }\n  property', 'record = "B"\n  }\n  property');
+  assert.deepEqual(describeModel(parseHcl(mixed)), describeModel(parseHcl(earlierSource)));
+  assert.equal(describeModel(parseHcl(currentSource)).entities[0].properties[1].references, 'B');
+});
+
+test('a model file in the earlier spelling is a notice, never a problem, one per registry record', () => {
+  const earlierSource = modelOrigin('notice-earlier');
+  const currentSource = modelOrigin('notice-current', { hcl: currentHcl });
+  const halfSource = modelOrigin('notice-half', { hcl: currentHcl, json: toCurrentJson(jsonFor('notice-half')) });
+  const mixedSource = modelOrigin('notice-source-only', { hcl: fixtureHcl, json: jsonFor('notice-source-only') });
+  const dir = registry({
+    earlier: fixtureRecord(earlierSource, { address: 'modelspec://example.test/fixtures/notice-earlier/fixture' }),
+    current: fixtureRecord(currentSource),
+    half: fixtureRecord(halfSource),
+    other: fixtureRecord(mixedSource),
+  });
+  const result = check(dir);
+  assert.deepEqual(result.problems, []);
+  assert.deepEqual(result.notices, [
+    'models/$records/earlier.yaml: model/fixture.modelspec.hcl and model/fixture.modelspec.json are in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites them',
+    'models/$records/other.yaml: model/fixture.modelspec.hcl and model/fixture.modelspec.json are in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites them',
+  ]);
+  assert.equal(earlierSpellingNotice('r.yaml', ['a.hcl']), 'r.yaml: a.hcl is in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites it');
+  // A broken model gives problems and no notice; a record that is not read gives neither.
+  assert.deepEqual(problemsOf(modelOrigin('notice-broken', { json: '{ nope' })).length > 0, true);
+  assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', fixtureHcl), ['r.yaml: m.hcl is in the earlier spelling (entity, property, entity =; 1.0-draft), which is still read; modelspec rewrite --write rewrites it']);
+  assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', currentHcl), []);
+  assert.deepEqual(sourceNotices('r.yaml', 'm.hcl', 'entity "A" {'), []);
 });

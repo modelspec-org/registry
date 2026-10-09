@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { isScalar, parse as parseYaml, parseDocument, visit } from 'yaml';
 import { addressOf, commitPattern, defaultBranch, defaultCacheDir, isRepositoryPath, lastLine, modulePattern, onBranch, openCommit, repositoryHosts, repositoryKey, trackedCacheProblems } from './git.mjs';
 import { homepageProblem } from './urls.mjs';
-import { astDifferences, describeModel, modelspecVersion, parseHcl, parseJson, toModelspecJson, validateModel } from './modelspec.mjs';
+import { astDifferences, describeModel, hclUsesEarlier, parseHcl, parseJson, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './modelspec.mjs';
 
 export const registryFormat = 'modelspec-registry/draft-1';
 export const statuses = ['draft', 'published', 'deprecated'];
@@ -216,8 +216,23 @@ function licenceProblems(file, view, path, declared, expected) {
 
 const maxDifferences = 10;
 
-// Checks one model at its commit and returns { problems, entry }, where `entry`
-// is the model's index entry (absent when the model could not be read). `urlFor`
+// The notice for a registry record whose model files are in the earlier spelling
+// (decision 0018): they are valid and still read, so this is a notice and never a
+// problem. `files` are the model files that use it.
+export function earlierSpellingNotice(file, files) {
+  const [pronoun, verb] = files.length === 1 ? ['it', 'is'] : ['them', 'are'];
+  return `${file}: ${files.join(' and ')} ${verb} in the earlier spelling (${vocabularies.earlier.record}, ${vocabularies.earlier.field}, ${vocabularies.earlier.record} =; ${vocabularies.earlier.identifier}), which is still read; modelspec rewrite --write rewrites ${pronoun}`;
+}
+
+// The notices for an HCL source on its own, for a script that lints sources alone.
+// A source this module cannot parse gives none: the linter is the judge of that.
+export function sourceNotices(file, sourceFile, text) {
+  try { return hclUsesEarlier(parseHcl(text)) ? [earlierSpellingNotice(file, [sourceFile])] : []; } catch { return []; }
+}
+
+// Checks one model at its commit and returns { problems, entry, notices }, where `entry`
+// is the model's index entry (absent when the model could not be read) and `notices`
+// holds the notice for a model in the earlier spelling (never a problem). `urlFor`
 // maps a repository URL to the URL git fetches (tests point it at local
 // repositories).
 export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir, fetched = new Set(), branches = new Map() }) {
@@ -254,8 +269,8 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
   const structural = validateModel(ast);
   for (const problem of structural) problems.push(`${file}: ${data.json_file}: ${problem}`);
   if (structural.length > 0) return { problems };
-  if (ast.modelspec !== modelspecVersion) problems.push(`${file}: ${data.json_file}: modelspec must be "${modelspecVersion}"`);
-  if (Object.keys(ast.entities ?? {}).length === 0) problems.push(`${file}: ${data.json_file}: a registered model has at least one entity`);
+  const vocabulary = vocabularyOf(ast);
+  if (Object.keys(ast[vocabulary.records] ?? {}).length === 0) problems.push(`${file}: ${data.json_file}: a registered model has at least one ${vocabulary.record}`);
 
   // The module the files declare is the module in the record and in the address.
   const repoKey = repositoryKey(data.repository);
@@ -284,8 +299,10 @@ export function readModel({ record, urlFor = (url) => url, cacheDir, historyDir,
   } catch (error) { problems.push(`${file}: licence: ${lastLine(error)}`); }
 
   if (problems.length > 0) return { problems };
+  const earlierFiles = [hclUsesEarlier(document) && data.source_file, vocabulary === vocabularies.earlier && data.json_file].filter(Boolean);
   return {
     problems,
+    notices: earlierFiles.length > 0 ? [earlierSpellingNotice(file, earlierFiles)] : [],
     entry: {
       id: key,
       title: data.title,
@@ -319,32 +336,36 @@ export function buildIndex(entries) {
   return `${JSON.stringify({ format: registryFormat, checksum, models }, null, 2)}\n`;
 }
 
-// Reads every model at its commit: { problems, entries, registry }. A model
-// that fails its checks has no entry and gives problems.
+// Reads every model at its commit: { problems, notices, entries, registry }. A model
+// that fails its checks has no entry and gives problems; a model in the earlier
+// spelling gives a notice, which is not a problem.
 export function loadModels({ root, urlFor, cacheDir = defaultCacheDir(), fetched = new Set(), branches = new Map() } = {}) {
   const registry = readRegistry(root);
   const tracked = trackedCacheProblems(root);
   const problems = [...tracked, ...registry.problems, ...recordProblems(registry)];
   const entries = [];
+  const notices = [];
   // Nothing is fetched into, or read from, a checkout that tracks a cache.
-  if (tracked.length > 0) return { problems, entries, registry };
+  if (tracked.length > 0) return { problems, notices, entries, registry };
   const historyDir = join(cacheDir, 'history');
   for (const record of registry.models) {
     const result = readModel({ record, urlFor, cacheDir: join(cacheDir, 'models'), historyDir, fetched, branches });
     problems.push(...result.problems);
+    notices.push(...(result.notices ?? []));
     if (result.entry) entries.push(result.entry);
   }
-  return { problems, entries, registry };
+  return { problems, notices, entries, registry };
 }
 
-// Every check: records, then each model at its commit, then index.json.
+// Every check: records, then each model at its commit, then index.json. Returns
+// { problems, notices, models }; the notices never change whether the check passes.
 // `fetched` and `branches` remember, across calls, which branch histories were
 // fetched and which default branches were read; by default each call starts afresh.
 export function checkRegistry(options = {}) {
   const { root } = options;
-  const { problems, entries, registry } = loadModels(options);
+  const { problems, notices, entries, registry } = loadModels(options);
   const path = join(root, 'index.json');
   if (!existsSync(path)) problems.push('index.json is missing; run npm run index and commit it');
   else if (problems.length === 0 && readFileSync(path, 'utf8') !== buildIndex(entries)) problems.push('index.json differs from the records and the models they pin; run npm run index and commit it');
-  return { problems, models: registry.models.length };
+  return { problems, notices, models: registry.models.length };
 }

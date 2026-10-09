@@ -12,14 +12,16 @@
 // The release is pinned by version and SHA-256, the same one datatug/chinookdb
 // lints with; its archive is verified against the pin before every run and the
 // binary is unpacked fresh from it (scripts/lib/specscore.mjs). Caches live in
-// the per-user cache directory, never in the checkout.
+// the per-user cache directory, never in the checkout. A source in the earlier
+// spelling (entity, property; ModelSpec decision 0018) is valid and is linted as
+// it is; it is reported as a notice, which does not change the exit status.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultCacheDir, git, openCommit, trackedCacheProblems } from './lib/git.mjs';
-import { readRegistry, recordProblems, wellFormed } from './lib/registry.mjs';
+import { readRegistry, recordProblems, sourceNotices, wellFormed } from './lib/registry.mjs';
 import { specscoreBinary } from './lib/specscore.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -41,7 +43,9 @@ for (const record of registry.models.filter(wellFormed)) {
   try {
     const view = openCommit(data.repository, data.commit, join(cacheDir, 'models'));
     const source = join(work, 'source.hcl');
-    writeFileSync(source, view.read(data.source_file));
+    const text = view.read(data.source_file);
+    writeFileSync(source, text);
+    for (const notice of sourceNotices(file, data.source_file, text)) console.error(`notice: ${notice}`);
     const tree = join(work, 'tree');
     mkdirSync(tree);
     git(['-C', tree, 'init', '-q', '--template=']);
