@@ -7,7 +7,7 @@ status: draft
 homepage: https://sakila.demodb.dev/model/
 address: modelspec://github.com/demo-db/sakila/sakila
 repository: https://github.com/demo-db/sakila
-commit: cb9a81a8cbedcd8831737f281f888d5d584fae85
+commit: 113e54ad83c3e003a4fd195c893f2b19a921435c
 module: sakila
 source_file: model/sakila.modelspec.hcl
 json_file: model/sakila.modelspec.json
