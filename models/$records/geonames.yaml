@@ -9,7 +9,7 @@ description: >-
 status: draft
 address: modelspec://github.com/ingitdb/geo-ingitdb/geonames
 repository: https://github.com/ingitdb/geo-ingitdb
-commit: 6f4cf1269bc393048f6b204069135a62f0bb6c02
+commit: 234401cddbf6fc3b37c6a2f57a25cf96e52119da
 module: geonames
 source_file: model/geonames.modelspec.hcl
 json_file: model/geonames.modelspec.json
