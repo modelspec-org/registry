@@ -135,9 +135,9 @@ way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and a
 record type of it is `modelspec://github.com/demo-db/chinook/chinook.Invoice`.
 That grammar is not invented here: `meaning/draft-1`
 ([`FORMAT.md` of `meaninggraph/core`](https://github.com/meaninggraph/core/blob/main/FORMAT.md))
-already reserves `modelspec://{host}/{org}/{repo}/{module}.{Entity}` for a
+already reserves `modelspec://{host}/{org}/{repo}/{module}.{Record}` for a
 binding to a model in another repository, and the registry's address is that
-without `.{Entity}`.
+without `.{Record}`.
 
 ModelSpec itself names a module with `module.id`, a string it says should be
 "stable and globally meaningful", and defines no URL form (its
@@ -375,7 +375,7 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    does not know on a record type or a field, a member with both a type and a
    reference or with neither, an empty key, an unknown block, a top-level setting,
    a dot in a concept name or a negative `max_len`; `npm run check` refuses each
-   of them, with the registry's own parser. For a source in the earlier
+   of them, with the registry's own parser and validator. For a source in the earlier
    spelling the script prints the registry's `notice:` (naming `modelspec rewrite
    --write`); SpecScore's own advisory finding for it is ignored
    (`--ignore graph-model-deprecated-spelling`), so that the notice appears once.
@@ -405,7 +405,7 @@ a corrupt object, a publisher's branch that moves between two runs, a planted or
 tampered linter binary or archive, names such as `constructor`, `__proto__`
 and a name used twice in the JSON, and what `scripts/check.mjs` and
 `scripts/lint-hcl.mjs` print on standard output and on standard error and the
-exit status they set (a notice never sets it). `npm run test:ingitdb`
+exit status they set (a notice never sets it); the `ok:` lines of `scripts/lint-hcl.mjs` are tested in the function behind it (`lintRegistry`), not in the script run as a process, which would need a model on a real https host. `npm run test:ingitdb`
 (with `INGITDB_CLI` set to the CLI) proves inGitDB rejects each broken
 constraint of the collection definitions.
 

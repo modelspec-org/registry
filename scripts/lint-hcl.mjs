@@ -5,7 +5,7 @@
 //   network; SPECSCORE=<binary> skips the download)
 //
 // `specscore graph lint` (https://github.com/specscore/specscore-cli) is one HCL
-// parser for ModelSpec; the reference CLI (`modelspec`) is another. It reads
+// parser for ModelSpec; the reference CLI (`modelspec`) is another. SpecScore reads
 // ModelSpec sources from a graph module's models/ directory, so each source is
 // copied into a throwaway tree with a module named like the record's `module`. It
 // reads both spellings of ModelSpec, as the specification asks of every reader,
@@ -17,7 +17,7 @@
 // that names no field, an unsupported field type, a setting it does not know on a
 // record type or a field, a member with both a type and a reference or with
 // neither, an empty key, an unknown block, a top-level setting, a dot in a concept
-// name and a negative max_len. It needs SpecScore 0.55.0 or later because of the
+// name and a negative max_len. This script needs SpecScore 0.55.0 or later because of the
 // --ignore in lintArguments: SPECSCORE=<an older binary> fails every model with
 // `Unknown graph rule "graph-model-deprecated-spelling"`.
 // The release is pinned by version and SHA-256; its archive is verified against
