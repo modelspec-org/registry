@@ -22,10 +22,10 @@ This repository is the data behind that page.
 
 ## What a model registry is for
 
-A ModelSpec model says what shape some data has: its entities, their fields,
-types and links, written once whatever stores it. Registering a model gives it
-one public address and a pinned, checked version. That makes three things
-possible:
+A ModelSpec model says what shape some data has: its record types, their
+fields, types and links, written once whatever stores it. Registering a model
+gives it one public address and a pinned, checked version. That makes three
+things possible:
 
 - **Start a project from a published model.** Instead of defining Chinook's
   eleven record types again, a new project looks the address up, reads the two
@@ -40,7 +40,7 @@ possible:
   each database is a private copy of its shape.
 
 [MeaningGraph](https://meaninggraph.io) attaches meanings to a model's
-entities and properties, so one meaning file serves every database of the
+record types and fields, so one meaning file serves every database of the
 model. The OpenVaultDB Directory lists databases. This registry lists the
 models in between.
 
@@ -131,8 +131,8 @@ Keyed by GitHub handle, with a `name`.
 The address is `modelspec://` and the repository without `https://`, then `/`
 and the module: `https://github.com/demo-db/chinook` and the module `chinook`
 make `modelspec://github.com/demo-db/chinook/chinook`. A model is pinned the
-way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and an
-entity of it is `modelspec://github.com/demo-db/chinook/chinook.Invoice`.
+way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and a
+record type of it is `modelspec://github.com/demo-db/chinook/chinook.Invoice`.
 That grammar is not invented here: `meaning/draft-1`
 ([`FORMAT.md` of `meaninggraph/core`](https://github.com/meaninggraph/core/blob/main/FORMAT.md))
 already reserves `modelspec://{host}/{org}/{repo}/{module}.{Entity}` for a
