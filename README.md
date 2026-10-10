@@ -402,8 +402,10 @@ mismatch, a missing, stale or edited `index.json`, and the cache: a tracked
 `.cache`, an unsafe cache directory, a cached repository carrying a forged
 replace ref, a planted hook, a redirecting configuration, an alternates file or
 a corrupt object, a publisher's branch that moves between two runs, a planted or
-tampered linter binary or archive, and names such as `constructor`, `__proto__`
-and a name used twice in the JSON. `npm run test:ingitdb`
+tampered linter binary or archive, names such as `constructor`, `__proto__`
+and a name used twice in the JSON, and what `scripts/check.mjs` and
+`scripts/lint-hcl.mjs` print on standard output and on standard error and the
+exit status they set (a notice never sets it). `npm run test:ingitdb`
 (with `INGITDB_CLI` set to the CLI) proves inGitDB rejects each broken
 constraint of the collection definitions.
 

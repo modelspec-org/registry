@@ -15,12 +15,7 @@
 // per registry record, that does not change the exit status.
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkRegistry, checkReport } from './lib/registry.mjs';
+import { runCheck } from './lib/registry.mjs';
 
 const root = process.argv[2] ?? dirname(dirname(fileURLToPath(import.meta.url)));
-let result;
-try { result = checkRegistry({ root }); } catch (error) { console.error(`error: ${error.message}`); process.exit(1); }
-const { stdout, stderr, status } = checkReport(result);
-for (const line of stderr) console.error(line);
-for (const line of stdout) console.log(line);
-process.exitCode = status;
+process.exitCode = runCheck({ root, log: console.log, error: console.error });

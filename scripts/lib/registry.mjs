@@ -243,6 +243,17 @@ export function checkReport({ problems, notices, models }) {
   return { stdout: [`ok: ${plural} checked`], stderr, status: 0 };
 }
 
+// What scripts/check.mjs does: the report of `check({ root })` on `log` (standard output)
+// and `error` (standard error), and the exit status. A check that throws is one error line.
+export function runCheck({ root, check = checkRegistry, log, error }) {
+  let result;
+  try { result = check({ root }); } catch (cause) { error(`error: ${cause.message}`); return 1; }
+  const { stdout, stderr, status } = checkReport(result);
+  for (const line of stderr) error(line);
+  for (const line of stdout) log(line);
+  return status;
+}
+
 // Checks one model at its commit and returns { problems, entry, notices }, where `entry`
 // is the model's index entry (absent when the model could not be read) and `notices`
 // holds the notice for a model in the earlier spelling (never a problem). `urlFor`
