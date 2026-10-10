@@ -1,6 +1,6 @@
 {
   "format": "modelspec-registry/draft-1",
-  "checksum": "sha256:5e3fe36bca982a68c0231168bdf229621f3bdb81fabc8b236bc3290b4fcf8f73",
+  "checksum": "sha256:0b13054051c7639b386761d60d84f0fb0f0103cff6e4c2e69b3e3a05ace09305",
   "models": [
     {
       "id": "adventureworks",
@@ -4231,11 +4231,11 @@
       "status": "draft",
       "address": "modelspec://github.com/openvaultdb/ovdb/ecb",
       "repository": "https://github.com/openvaultdb/ovdb",
-      "commit": "6751a14ae12bfeadbcc9a7c6aa6174c81d697e20",
+      "commit": "2a444f29df25ca81ecf83739aeb2441979c12d6f",
       "module": "ecb",
       "module_id": "github.com/openvaultdb/ovdb/publisher/source/model/ecb",
       "module_version": "0.1.0",
-      "modelspec": "1.0-draft",
+      "modelspec": "1.0-draft-2",
       "licence": "CC0-1.0",
       "files": {
         "source": "publisher/source/model/ecb-daily.modelspec.hcl",
@@ -4514,11 +4514,11 @@
       "status": "draft",
       "address": "modelspec://github.com/ingitdb/geo-ingitdb/geonames",
       "repository": "https://github.com/ingitdb/geo-ingitdb",
-      "commit": "6f4cf1269bc393048f6b204069135a62f0bb6c02",
+      "commit": "234401cddbf6fc3b37c6a2f57a25cf96e52119da",
       "module": "geonames",
       "module_id": "github.com/ingitdb/geo-ingitdb/model/geonames",
       "module_version": "0.1.0",
-      "modelspec": "1.0-draft",
+      "modelspec": "1.0-draft-2",
       "licence": "CC0-1.0",
       "files": {
         "source": "model/geonames.modelspec.hcl",
@@ -6197,11 +6197,11 @@
       "status": "draft",
       "address": "modelspec://github.com/ingitdb/ror-ingitdb/ror",
       "repository": "https://github.com/ingitdb/ror-ingitdb",
-      "commit": "dc78c1e929f1f10018f8c39e690351059a50c71f",
+      "commit": "295bf52951de7f4eb1c989e4147d7c1e97145b0a",
       "module": "ror",
       "module_id": "github.com/ingitdb/ror-ingitdb/model/ror",
       "module_version": "0.1.0",
-      "modelspec": "1.0-draft",
+      "modelspec": "1.0-draft-2",
       "licence": "CC0-1.0",
       "files": {
         "source": "model/ror.modelspec.hcl",
