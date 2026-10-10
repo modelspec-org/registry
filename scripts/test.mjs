@@ -17,7 +17,8 @@ import { addressOf, cacheRepoSound, defaultBranch, defaultCacheDir, entryFor, gi
 import { astDifferences, describeModel, hclUsesEarlier, parseHcl, parseJson, serializeModel, toModelspecJson, validateModel, vocabularies, vocabularyOf } from './lib/modelspec.mjs';
 import { homepageProblem, maxHomepageLength, publicHttpsProblem } from './lib/urls.mjs';
 import { lintArguments, specscoreBinary, verifiedArchive } from './lib/specscore.mjs';
-import { buildIndex, checkRegistry, checkReport, declaredLicence, earlierSpellingNotice, loadModels, readRegistry, recordProblems, registryFormat, sourceNotices, wellFormed } from './lib/registry.mjs';
+import { buildIndex, checkRegistry, checkReport, declaredLicence, earlierSpellingNotice, loadModels, readRegistry, recordProblems, registryFormat, runCheck, sourceNotices, wellFormed } from './lib/registry.mjs';
+import { lintRegistry } from './lib/lint.mjs';
 
 // The local repositories that stand in for https URLs are file:// URLs, at
 // https://example.test/fixtures/<name>; the tests allow that host and protocol.
@@ -1850,4 +1851,108 @@ test('lint-hcl.mjs: one notice for a source in the earlier spelling, none for th
   assert.deepEqual(sourceNotices('r', 'f', 'record "A" {'), []);
   // The linter is told to ignore its own finding for the earlier spelling, and only that one, so a source gets one notice.
   assert.deepEqual(lintArguments, ['graph', 'lint', '--severity', 'info', '--ignore', 'graph-model-deprecated-spelling']);
+});
+
+// ---- the two scripts: what they print where, and the exit status they set ---
+
+// Both scripts are a line of glue around a function that takes its output as arguments.
+const outputs = () => { const out = { log: [], error: [] }; return { out, log: (line) => out.log.push(line), error: (line) => out.error.push(line) }; };
+
+test('check.mjs: notices and errors go to standard error, the ok line to standard output, and a notice never sets the status', () => {
+  const noticed = outputs();
+  const passing = runCheck({ root: 'r', check: ({ root }) => { assert.equal(root, 'r'); return { problems: [], notices: ['n one'], models: 2 }; }, ...noticed });
+  assert.equal(passing, 0);
+  assert.deepEqual(noticed.out, { log: ['ok: 2 models checked'], error: ['notice: n one'] });
+  const failed = outputs();
+  assert.equal(runCheck({ root: 'r', check: () => ({ problems: ['p'], notices: ['n one'], models: 1 }), ...failed }), 1);
+  assert.deepEqual(failed.out, { log: [], error: ['notice: n one', 'error: p', '1 problem in 1 model'] });
+  // A check that throws is one error line and a failing status.
+  const thrown = outputs();
+  assert.equal(runCheck({ root: 'r', check: () => { throw new Error('cannot read'); }, ...thrown }), 1);
+  assert.deepEqual(thrown.out, { log: [], error: ['error: cannot read'] });
+});
+
+test('check.mjs as a process: the ok line on standard output and status 0; an error on standard error only and status 1', () => {
+  const script = join(root, 'scripts', 'check.mjs');
+  const run = (dir) => {
+    try { return { status: 0, stdout: execFileSync(process.execPath, [script, dir], { stdio: 'pipe' }).toString(), stderr: '' }; } catch (error) { return { status: error.status, stdout: String(error.stdout), stderr: String(error.stderr) }; }
+  };
+  const sound = registry();
+  const passing = run(sound);
+  assert.deepEqual(passing, { status: 0, stdout: 'ok: 0 models checked\n', stderr: '' });
+  rmSync(join(sound, 'index.json'));
+  const failing = run(sound);
+  assert.equal(failing.status, 1);
+  assert.equal(failing.stdout, '');
+  assert.equal(failing.stderr, 'error: index.json is missing; run npm run index and commit it\n1 problem in 0 models\n');
+});
+
+// A stand-in for the pinned specscore: it writes the arguments of each lint to `log`, prints its
+// version and fails a lint of any source that holds the word BROKEN.
+function fakeSpecscore(log) {
+  const dir = mkdtempSync(join(scratch, 'fake-specscore-'));
+  const path = join(dir, 'specscore');
+  writeFileSync(path, `#!/bin/sh
+case "$*" in
+  *--version*) echo "9.9.9" ;;
+  *"graph lint"*)
+    echo "$*" >> '${log}'
+    if grep -q BROKEN spec/graph/modules/*/models/model.hcl; then echo "model.hcl:1 [error] fake finding"; exit 1; fi ;;
+esac
+`, { mode: 0o755 });
+  return path;
+}
+
+test('lint-hcl.mjs: ok lines on standard output; notices and errors on standard error; a notice never sets the status, a failing source does', async () => {
+  const source = (name, hcl) => fixtureRecord(modelOrigin(name, { hcl }));
+  const earlier = source('lint-earlier', fixtureHcl);
+  const current = source('lint-current', currentHcl);
+  const broken = source('lint-broken', `${currentHcl}# BROKEN\n`);
+  const lint = async (records) => {
+    const lintLog = join(scratch, `lint-args-${count++}`);
+    const specscore = fakeSpecscore(lintLog);
+    let disposed = 0;
+    const printed = outputs();
+    const status = await lintRegistry({ root: registry(records, { index: false }), cacheDir: freshCache(), binary: async () => ({ path: specscore, dispose: () => { disposed++; } }), urlFor, ...printed });
+    const calls = existsSync(lintLog) ? readFileSync(lintLog, 'utf8').trim().split('\n') : [];
+    return { status, disposed, calls, ...printed.out };
+  };
+  const ok = (id) => `ok: models/$records/${id}.yaml: model/fixture.modelspec.hcl passes specscore graph lint (specscore 9.9.9)`;
+  const notice = sourceNotices('models/$records/earlier.yaml', 'model/fixture.modelspec.hcl', fixtureHcl).map((line) => `notice: ${line}`);
+  assert.equal(notice.length, 1);
+
+  // A source in the earlier spelling gives one notice on standard error, and the exit status stays 0.
+  const noticed = await lint({ current, earlier });
+  assert.deepEqual(noticed, { status: 0, disposed: 1, calls: Array(2).fill(`${lintArguments.join(' ')} --no-telemetry`), log: [ok('current'), ok('earlier')], error: notice });
+
+  // A source SpecScore refuses (the records are read in the order of their file names) is an error line
+  // on standard error and no ok line; the other sources are still linted, and the status is 1.
+  const failed = await lint({ broken, current, earlier });
+  assert.deepEqual(failed, { status: 1, disposed: 1, calls: Array(3).fill(`${lintArguments.join(' ')} --no-telemetry`), log: [ok('current'), ok('earlier')], error: ['error: models/$records/broken.yaml: model/fixture.modelspec.hcl: model.hcl:1 [error] fake finding', ...notice] });
+});
+
+test('lint-hcl.mjs: a record that is not sound is reported before any binary is fetched', async () => {
+  const unsound = fixtureRecord(modelOrigin('lint-unsound'), { commit: 'NOT-A-COMMIT' });
+  let asked = 0;
+  const printed = outputs();
+  const status = await lintRegistry({ root: registry({ unsound }, { index: false }), cacheDir: freshCache(), binary: async () => { asked++; throw new Error('no binary wanted'); }, urlFor, ...printed });
+  assert.equal(status, 1);
+  assert.equal(asked, 0);
+  assert.deepEqual(printed.out.log, []);
+  assert.ok(printed.out.error.length > 0 && printed.out.error.every((line) => /^error: models\/\$records\/unsound\.yaml: /.test(line)), printed.out.error.join('\n'));
+});
+
+test('lint-hcl.mjs as a process: a record that is not sound is an error on standard error only, with status 1, and no binary is run', () => {
+  const unsound = fixtureRecord(modelOrigin('lint-process'), { commit: 'NOT-A-COMMIT' });
+  const dir = registry({ unsound }, { index: false });
+  // SPECSCORE names a binary that would leave a mark if it were run; XDG_CACHE_HOME keeps the cache in the scratch directory.
+  const mark = join(scratch, `lint-process-ran-${count++}`);
+  const specscore = join(scratch, `lint-process-specscore-${count++}`);
+  writeFileSync(specscore, `#!/bin/sh\ntouch '${mark}'\n`, { mode: 0o755 });
+  let result;
+  try { result = { status: 0, stdout: execFileSync(process.execPath, [join(root, 'scripts', 'lint-hcl.mjs'), dir], { stdio: 'pipe', env: { ...process.env, SPECSCORE: specscore, XDG_CACHE_HOME: join(scratch, 'xdg') } }).toString(), stderr: '' }; } catch (error) { result = { status: error.status, stdout: String(error.stdout), stderr: String(error.stderr) }; }
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /^error: models\/\$records\/unsound\.yaml: /);
+  assert.equal(existsSync(mark), false);
 });

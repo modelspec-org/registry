@@ -22,10 +22,10 @@ This repository is the data behind that page.
 
 ## What a model registry is for
 
-A ModelSpec model says what shape some data has: its entities, their fields,
-types and links, written once whatever stores it. Registering a model gives it
-one public address and a pinned, checked version. That makes three things
-possible:
+A ModelSpec model says what shape some data has: its record types, their
+fields, types and links, written once whatever stores it. Registering a model
+gives it one public address and a pinned, checked version. That makes three
+things possible:
 
 - **Start a project from a published model.** Instead of defining Chinook's
   eleven record types again, a new project looks the address up, reads the two
@@ -40,7 +40,7 @@ possible:
   each database is a private copy of its shape.
 
 [MeaningGraph](https://meaninggraph.io) attaches meanings to a model's
-entities and properties, so one meaning file serves every database of the
+record types and fields, so one meaning file serves every database of the
 model. The OpenVaultDB Directory lists databases. This registry lists the
 models in between.
 
@@ -131,13 +131,13 @@ Keyed by GitHub handle, with a `name`.
 The address is `modelspec://` and the repository without `https://`, then `/`
 and the module: `https://github.com/demo-db/chinook` and the module `chinook`
 make `modelspec://github.com/demo-db/chinook/chinook`. A model is pinned the
-way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and an
-entity of it is `modelspec://github.com/demo-db/chinook/chinook.Invoice`.
+way MeaningGraph pins a concept, with `?ref=<40-character commit id>`, and a
+record type of it is `modelspec://github.com/demo-db/chinook/chinook.Invoice`.
 That grammar is not invented here: `meaning/draft-1`
 ([`FORMAT.md` of `meaninggraph/core`](https://github.com/meaninggraph/core/blob/main/FORMAT.md))
-already reserves `modelspec://{host}/{org}/{repo}/{module}.{Entity}` for a
+already reserves `modelspec://{host}/{org}/{repo}/{module}.{Record}` for a
 binding to a model in another repository, and the registry's address is that
-without `.{Entity}`.
+without `.{Record}`.
 
 ModelSpec itself names a module with `module.id`, a string it says should be
 "stable and globally meaningful", and defines no URL form (its
@@ -366,15 +366,21 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    that fails, so a publisher moving its default branch never breaks the check.
 3. **SpecScore's linter** (`npm run lint:hcl`, [`scripts/lint-hcl.mjs`](scripts/lint-hcl.mjs))
    runs `specscore graph lint` over each HCL source. It reads both spellings of
-   ModelSpec and uses SpecScore's HCL parser to check the syntax, references
-   (to a record type or a component), reserved names, duplicate record types and
-   enum values, and to refuse the removed and reserved constructs. It does not
-   check duplicate field names, a key that names no field, an unsupported field
-   type, or a setting it does not know on a record type or a field; `npm run
-   check` does, with the registry's own parser. For a source in the earlier
+   ModelSpec and uses SpecScore's HCL parser to check the syntax, that the name in
+   a record, component, use or enum reference resolves to a concept of the module
+   (of any kind: `record = "Money"` passes when `Money` is a component), reserved
+   names, duplicate record types and enum values, and to refuse the removed and
+   reserved constructs. The pinned release does not check, and passes, a duplicate
+   field name, a key that names no field, an unsupported field type, a setting it
+   does not know on a record type or a field, a member with both a type and a
+   reference or with neither, an empty key, an unknown block, a top-level setting,
+   a dot in a concept name or a negative `max_len`; `npm run check` refuses each
+   of them, with the registry's own parser and validator. For a source in the earlier
    spelling the script prints the registry's `notice:` (naming `modelspec rewrite
    --write`); SpecScore's own advisory finding for it is ignored
    (`--ignore graph-model-deprecated-spelling`), so that the notice appears once.
+   That option needs SpecScore 0.55.0 or later: `SPECSCORE=<an older binary>`
+   fails every model with `Unknown graph rule "graph-model-deprecated-spelling"`.
    A notice never changes the exit status.
    The SpecScore release is pinned by version and SHA-256, and
    the hash is checked before every run, not only after a download: the cached
@@ -396,8 +402,10 @@ mismatch, a missing, stale or edited `index.json`, and the cache: a tracked
 `.cache`, an unsafe cache directory, a cached repository carrying a forged
 replace ref, a planted hook, a redirecting configuration, an alternates file or
 a corrupt object, a publisher's branch that moves between two runs, a planted or
-tampered linter binary or archive, and names such as `constructor`, `__proto__`
-and a name used twice in the JSON. `npm run test:ingitdb`
+tampered linter binary or archive, names such as `constructor`, `__proto__`
+and a name used twice in the JSON, and what `scripts/check.mjs` and
+`scripts/lint-hcl.mjs` print on standard output and on standard error and the
+exit status they set (a notice never sets it); the `ok:` lines of `scripts/lint-hcl.mjs` are tested in the function behind it (`lintRegistry`), not in the script run as a process, which would need a model on a real https host. `npm run test:ingitdb`
 (with `INGITDB_CLI` set to the CLI) proves inGitDB rejects each broken
 constraint of the collection definitions.
 
