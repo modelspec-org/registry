@@ -366,15 +366,21 @@ Three layers run in CI ([`.github/workflows/check.yml`](.github/workflows/check.
    that fails, so a publisher moving its default branch never breaks the check.
 3. **SpecScore's linter** (`npm run lint:hcl`, [`scripts/lint-hcl.mjs`](scripts/lint-hcl.mjs))
    runs `specscore graph lint` over each HCL source. It reads both spellings of
-   ModelSpec and uses SpecScore's HCL parser to check the syntax, references
-   (to a record type or a component), reserved names, duplicate record types and
-   enum values, and to refuse the removed and reserved constructs. It does not
-   check duplicate field names, a key that names no field, an unsupported field
-   type, or a setting it does not know on a record type or a field; `npm run
-   check` does, with the registry's own parser. For a source in the earlier
+   ModelSpec and uses SpecScore's HCL parser to check the syntax, that the name in
+   a record, component, use or enum reference resolves to a concept of the module
+   (of any kind: `record = "Money"` passes when `Money` is a component), reserved
+   names, duplicate record types and enum values, and to refuse the removed and
+   reserved constructs. The pinned release does not check, and passes, a duplicate
+   field name, a key that names no field, an unsupported field type, a setting it
+   does not know on a record type or a field, a member with both a type and a
+   reference or with neither, an empty key, an unknown block, a top-level setting,
+   a dot in a concept name or a negative `max_len`; `npm run check` refuses each
+   of them, with the registry's own parser. For a source in the earlier
    spelling the script prints the registry's `notice:` (naming `modelspec rewrite
    --write`); SpecScore's own advisory finding for it is ignored
    (`--ignore graph-model-deprecated-spelling`), so that the notice appears once.
+   That option needs SpecScore 0.55.0 or later: `SPECSCORE=<an older binary>`
+   fails every model with `Unknown graph rule "graph-model-deprecated-spelling"`.
    A notice never changes the exit status.
    The SpecScore release is pinned by version and SHA-256, and
    the hash is checked before every run, not only after a download: the cached
